@@ -52,7 +52,13 @@ class AuthController extends Controller
             'role' => $request->role
         ]);
 
-        return response()->json(['message' => 'User registered successfully', 'user' => $user], 201);
+        $token = JWTAuth::fromUser($user);
+
+        return response()->json([
+            'message' => 'User registered successfully',
+            'user' => $user,
+            'token' => $token
+        ], 201);
     }
     public function updateProfile(Request $request)
     {

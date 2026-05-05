@@ -17,7 +17,7 @@ const role = 'user' // Default to 'user' role for registration, can be modified 
 const handleRegister = async () => {
   const registeredUser = await auth.register(name.value, email.value, password.value, role,confirmPassword.value)
   if (registeredUser ) {
-    router.push(`/login`)
+    router.push(`/user-dashboard`)
   }
 }
 </script>

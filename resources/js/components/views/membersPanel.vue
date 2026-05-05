@@ -14,6 +14,7 @@ const showModal = ref(false)
 const submitting = ref(false)
 const downloadingUserId = ref(null)
 const selectedUsers = ref([])
+const initialSelectedUsers = ref([])
 const sessionId = props.sessionId
 const searchTerm = ref('')
 const loading = ref(false)
@@ -25,6 +26,12 @@ const fetchSelectedUsers = async () => {
   try {
     const res = await api.get(`/api/session/${sessionId}/members`)
     selectedUsers.value = res.data.map(item => ({
+      ...item.user,
+      session_member_role: item.role,
+      uploads: item.uploads,   // keep uploads if needed
+      pivot_id: item.id        // optional if you need relation id
+    }))
+    initialSelectedUsers.value = res.data.map(item => ({
       ...item.user,
       session_member_role: item.role,
       uploads: item.uploads,   // keep uploads if needed
@@ -94,6 +101,7 @@ const submitForm = async () => {
         //here
         alert('Members added successfully!')
         closeModal()
+        fetchSelectedUsers()
     } catch (err) {
         console.error('Error adding members:', err)
         alert('Failed to add members. Please try again.')
@@ -344,7 +352,7 @@ onMounted(() => {
     <!-- Members List -->
     <div v-else>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="user in selectedUsers" :key="user.id" class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 p-6">
+            <div v-for="user in initialSelectedUsers" :key="user.id" class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 p-6">
                 <!-- Header accent -->
                 <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-purple-400"></div>
 

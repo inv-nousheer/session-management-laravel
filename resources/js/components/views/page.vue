@@ -57,7 +57,13 @@ const closeProfileMenu = () => {
 
 const logout = async () => {
   try {
-    await api.post('/api/logout')
+   const token = localStorage.getItem('token')
+
+    await api.post('/api/logout', {}, {
+    headers: {
+        Authorization: `Bearer ${token}`
+    }
+    })
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     window.location.href = '/login'
