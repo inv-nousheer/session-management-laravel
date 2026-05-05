@@ -385,5 +385,11 @@ class SessionController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
+    public function destroySessionMembers($id)
+    {
+        $session_member = SessionMember::findOrFail($id);
+        $session_member->delete();
+        return response()->json(['message' => 'Session Member deleted']);
+    }
 
 }

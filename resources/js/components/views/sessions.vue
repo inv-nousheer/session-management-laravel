@@ -717,8 +717,7 @@ watch(showModal, async (val) => {
 
     <!-- Modal content container -->
     <div class="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-2xl border border-gray-100 dark:border-slate-700">
-
+    <div class="bg-white dark:bg-slate-800 rounded-2xl text-left shadow-2xl transform transition-all w-full max-w-2xl border border-gray-100 dark:border-slate-700 max-h-[90vh] flex flex-col">
         <!-- Modal Header -->
         <div class="bg-linear-to-r from-purple-600 to-indigo-600 px-6 sm:px-8 py-6">
           <h3 class="text-2xl font-bold text-white" id="modal-title">
@@ -728,7 +727,7 @@ watch(showModal, async (val) => {
         </div>
 
         <!-- Modal Content -->
-        <div class="px-6 sm:px-8 py-8 space-y-6">
+        <div class="px-6 sm:px-8 py-6 space-y-6 overflow-y-auto">
 
           <!-- Session Name -->
           <div>

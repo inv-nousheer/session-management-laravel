@@ -50,8 +50,17 @@ const addSelectedUser = (user) => {
         selectedUsers.value.push(user)
     }
 }
-const removeSelectedUser = (userId) => {
+const removeSelectedUser = async (userId) => {
     selectedUsers.value = selectedUsers.value.filter((item) => item.id !== userId)
+     try {
+        await api.post(`/api/session-member/delete/${userId}`)
+        //here
+        alert('Member deleted successfully!')
+
+    } catch (err) {
+        console.error('Error deleting members:', err)
+        alert('Failed to delete members. Please try again.')
+    }
 }
 
 const filteredUsers = computed(() => {

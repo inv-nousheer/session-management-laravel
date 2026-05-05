@@ -37,4 +37,5 @@ Route::post('/request-extension', [AssessmentController::class, 'requestExtensio
 Route::get('/sessions/{id}/reopen-requests', [AssessmentController::class, 'reopenRequestsForSession']);
 Route::patch('/reopen-requests/{id}', [AssessmentController::class, 'updateReopenRequestStatus']);
 Route::get('/dashboard-data', [SessionController::class, 'dashboardData']);
+Route::post('/session-member/delete/{id}', [SessionController::class, 'destroySessionMembers']);
 
