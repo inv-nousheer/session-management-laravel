@@ -4,6 +4,10 @@ import page from '../components/views/page.vue'
 import Session from '../components/views/sessions.vue'
 import Register from '../components/views/register.vue'
 import sessionDetail from '../components/views/session-detail.vue'
+import Dashboard from '../components/views/dashboard.vue'
+import UserDashboard from '../components/views/userDashboard.vue'
+import Users from '../components/views/users.vue'
+import UsersList from '../components/views/usersList.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -11,19 +15,34 @@ const router = createRouter({
     { path: '/', redirect: '/login' },
     // { path: '/user-login', name: 'user-login', component: Login, meta: {  guestOnly: true, role: 'user' } },
     { path: '/login', name: 'login', component: Login, meta: {  guestOnly: true, role: 'admin' } },
-    // { path: '/user-dashboard', name: 'user-dashboard', component: page, meta: {   requiresAuth: true, role: 'user' } },
     { path: '/register', name: 'Register', component: Register, meta: { guestOnly: true } },
-    { path: '/sessions/:id', name: 'sessionDetail', component: sessionDetail, meta: { requiresAuth: true, role: 'admin'  } },
+    { path: '/session-detail/:id', name: 'sessionDetail', component: page, meta: { requiresAuth: true, role: 'admin'  } },
 
-    // { path: '/student', name: 'student-login', component: Login, meta: { role: 'student', guestOnly: true } },
-    // { path: '/teacher', name: 'teacher-login', component: Login, meta: { role: 'teacher', guestOnly: true } },
 
-    {
-      path: '/dashboard',
-      name: 'page',
-      component: page,
-      meta: { requiresAuth: true, role: 'admin' }
+
+
+    {path: '/user-dashboard',
+        component: page,   // 👈 layout
+        children: [
+        {path: '', component: UserDashboard},
+        { path: 'sessions', component: Session },
+        {path:'session-detail/:id', component:sessionDetail},
+        { path: 'users', component: UsersList },
+        // { path: 'assessments', component: Assessments }
+        ],
+        meta: {   requiresAuth: true, role: 'user' }
     },
+    {path: '/dashboard',
+        component: page,   // 👈 layout
+        children: [
+        {path: '', component: Dashboard},
+        { path: 'users', component: Users },
+        {path:'sessions', component:Session}
+        // { path: 'users', component: Users },
+        // { path: 'assessments', component: Assessments }
+        ],
+        meta: {   requiresAuth: true, role: 'admin' }
+    }
 
 
   ]

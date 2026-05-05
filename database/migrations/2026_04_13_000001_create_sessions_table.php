@@ -8,18 +8,20 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('seminars', function (Blueprint $table) {
+        Schema::create('events', function (Blueprint $table) {
             $table->id();
             $table->string('title');
             $table->text('description')->nullable();
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
-            $table->softDeletes();
+            $table->dateTime('date');
+            $table->string('tags');
+            $table->tinyInteger('status')->default(1);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
+        Schema::dropIfExists('events');
     }
 };

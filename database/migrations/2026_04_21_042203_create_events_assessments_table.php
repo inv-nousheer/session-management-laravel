@@ -6,20 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        Schema::create('events_users', function (Blueprint $table) {
+         Schema::create('events_assessments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('events_id')->constrained('events')->onDelete('cascade');
-            $table->foreignId('users_id')->constrained('users')->onDelete('cascade');
-            $table->tinyInteger('role')->default(1)->comment('1 for member, 2 for teamlead');
+            $table->string('name');
+            $table->dateTime('start_date_time');
+            $table->dateTime('end_date_time');
+            $table->text('supporting_files')->nullable();
+            $table->text('description')->nullable();
             $table->tinyInteger('status')->default(1);
             $table->timestamps();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::dropIfExists('events_users');
+        Schema::dropIfExists('events_assessments');
     }
 };

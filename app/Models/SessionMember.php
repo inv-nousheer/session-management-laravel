@@ -8,24 +8,48 @@ use Illuminate\Database\Eloquent\Model;
 class SessionMember extends Model
 {
     use HasFactory;
+    protected $table = 'events_users';
 
     protected $fillable = [
-        'seminar_id',
-        'user_id',
+        'events_id',
+        'users_id',
+        'role',
+        'status',
     ];
 
     public function session()
     {
-        return $this->belongsTo(Session::class,'seminar_id');
+        return $this->belongsTo(Session::class,'events_id');
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class,'users_id');
     }
 
-    public function uploads()
+
+
+    public function comments()
     {
-        return $this->hasMany(ProjectUpload::class);
+        return $this->hasMany(Comment::class);
     }
+
+    public function assessments()
+    {
+        return $this->hasMany(Assessment::class,'events_id','events_id');
+    }
+    public function projectUploads()
+    {
+        return $this->hasOne(ProjectUpload::class,'events_users_id','id');
+    }
+
+    public function assessmentReopenRequests()
+    {
+        return $this->hasMany(AssessmentReopenRequest::class, 'events_users_id', 'id');
+    }
+
+    // public function comments()
+    // {
+    //     return $this->hasMany(Comment::class);
+    // }
 }

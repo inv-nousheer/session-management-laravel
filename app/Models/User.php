@@ -12,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements JWTSubject
 {
@@ -41,18 +41,36 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-        public function sessionMembers()
-        {
-            return $this->hasMany(SessionMember::class);
-        }
+        // public function sessionMembers()
+        // {
+        //     return $this->hasMany(SessionMember::class, 'users_id', 'id');
+        // }
 
-        public function projectUploads()
-        {
-            return $this->hasManyThrough(ProjectUpload::class, SessionMember::class);
-        }
+        // public function projectUploads()
+        // {
+        //     return $this->hasManyThrough(ProjectUpload::class, SessionMember::class);
+        // }
 
-        public function comments()
-        {
-            return $this->hasMany(Comment::class);
-        }
+        // public function comments()
+        // {
+        //     return $this->hasMany(Comment::class);
+        // }
+
+    public function sessions()
+    {
+        return $this->belongsToMany(
+            Session::class,
+            'events_users',
+            'users_id',
+            'events_id'
+        )->withTimestamps();
+    }
+    public function createdSessions()
+    {
+        return $this->hasMany(Session::class, 'created_by');
+    }
+    public function sessionMembers()
+    {
+        return $this->hasMany(SessionMember::class, 'users_id');
+    }
 }

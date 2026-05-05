@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Validation\Rule;
+use App\Models\Session;
+
 
 class UserController extends Controller
 {
@@ -11,15 +14,20 @@ class UserController extends Controller
     {
         return response()->json(User::all());
     }
+     public function seminarUsers($id)
+    {
+        $creator_id = Session::find($id)->created_by;
+        return response()->json(User::where([['role','!=','admin'],['id','!=',$creator_id]])->get());
+    }
 
     // POST /api/Users
     public function store(Request $request)
     {
         $validated = $request->validate([
             'email' => 'required|email|unique:users|max:255',
-            'name' => 'string|max:255',
+            'name' => 'required|string|max:255',
             'password' => 'required|string|min:6',
-            'role' => 'required|string|in:admin,user',
+            'role' => 'required|string|in:member,admin,tl,user',
         ]);
         $User = User::create($validated);
         return response()->json($User, 201);
@@ -37,11 +45,14 @@ class UserController extends Controller
     {
         $User = User::findOrFail($id);
         $validated = $request->validate([
-            'email' => 'sometimes|required|email|max:255',
+            'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($User->id)],
             'name' => 'sometimes|required|string|max:255',
-            'password' => 'sometimes|required|string|min:6',
-            'role' => 'sometimes|required|string|in:admin,user',
+            'password' => 'nullable|string|min:6',
+            'role' => 'sometimes|required|string|in:member,admin,tl,user',
         ]);
+        if (empty($validated['password'])) {
+            unset($validated['password']);
+        }
         $User->update($validated);
         return response()->json($User);
     }

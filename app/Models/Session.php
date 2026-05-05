@@ -8,22 +8,63 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Session extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    protected $table =  'events';
 
     protected $fillable = [
         'title',
         'description',
         'created_by',
+        'date',
+        'status',
+        'tags'
     ];
-    protected $table = 'seminars';
 
-    public function members()
+    public function setTagsAttribute($value): void
     {
-        return $this->hasMany(SessionMember::class,'seminar_id');
+        if (is_array($value)) {
+            $tags = array_values(array_filter(array_map(
+                static fn ($t) => is_string($t) ? trim($t) : null,
+                $value
+            ), static fn ($t) => $t !== null && $t !== ''));
+
+            $this->attributes['tags'] = implode(',', $tags);
+            return;
+        }
+
+        $this->attributes['tags'] = is_string($value) ? trim($value) : $value;
     }
 
-    public function uploads()
+    // public function members()
+    // {
+    //     return $this->hasMany(SessionMember::class,'events_id');
+    // }
+
+    // public function uploads()
+    // {
+    //     return $this->hasMany(ProjectUpload::class);
+    // }
+
+    public function users()
     {
-        return $this->hasMany(ProjectUpload::class);
+        return $this->belongsToMany(
+            User::class,
+            'events_users',
+            'events_id',
+            'users_id'
+        )->withTimestamps();
     }
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+    public function sessionMembers()
+    {
+        return $this->hasMany(SessionMember::class, 'events_id');
+    }
+    public function assessments()
+    {
+        return $this->hasMany(Assessment::class);
+    }
+
 }

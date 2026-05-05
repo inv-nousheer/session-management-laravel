@@ -1,6 +1,67 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+
+import { ref, onMounted, computed } from 'vue'
 import api from '../../services/axios'
+
+const importLoading = ref(false)
+const importError = ref(null)
+const importResult = ref(null)
+const importFile = ref(null)
+const showImportModal = ref(false)
+
+const handleImportFileChange = (e) => {
+  importFile.value = e.target.files[0] || null
+}
+
+const openImportModal = () => {
+  showImportModal.value = true
+  importError.value = null
+  importResult.value = null
+  importFile.value = null
+  if (document.getElementById('import-users-file')) {
+    document.getElementById('import-users-file').value = ''
+  }
+}
+
+const closeImportModal = () => {
+  showImportModal.value = false
+  importError.value = null
+  importResult.value = null
+  importFile.value = null
+  if (document.getElementById('import-users-file')) {
+    document.getElementById('import-users-file').value = ''
+  }
+}
+
+const importUsers = async () => {
+  if (!importFile.value) {
+    importError.value = 'Please select a CSV file.'
+    return
+  }
+  importLoading.value = true
+  importError.value = null
+  importResult.value = null
+  try {
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+    const res = await api.post('/api/users/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    importResult.value = res.data
+    await fetchUsers()
+  } catch (err) {
+    importError.value = err.response?.data?.message || 'Failed to import users.'
+    if (err.response?.data?.errors) {
+      importError.value += ' ' + Object.values(err.response.data.errors).flat().join(' ')
+    }
+  } finally {
+    importLoading.value = false
+    importFile.value = null
+    if (document.getElementById('import-users-file')) {
+      document.getElementById('import-users-file').value = ''
+    }
+  }
+}
 
 const users = ref([])
 const loading = ref(true)
@@ -8,15 +69,35 @@ const error = ref(null)
 const showModal = ref(false)
 const submitting = ref(false)
 const formError = ref(null)
+const editingUserId = ref(null)
 
-const formData = ref({
+const ROLE_OPTIONS = [
+  { value: 'member', label: 'Member' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'tl', label: 'TL' },
+]
+
+const emptyForm = () => ({
   name: '',
   email: '',
-  role: ''
+  password: '',
+  role: 'member',
 })
 
+const formData = ref(emptyForm())
+
+const isEditMode = computed(() => editingUserId.value !== null)
+
+const formRoleForApi = (role) => (role === 'user' ? 'member' : role)
+
+const mapUserRoleToForm = (role) => {
+  if (role === 'user') return 'member'
+  if (['member', 'admin', 'tl'].includes(role)) return role
+  return 'member'
+}
+
 onMounted(async () => {
-    await fetchUsers()
+  await fetchUsers()
 })
 
 const fetchUsers = async () => {
@@ -34,35 +115,81 @@ const fetchUsers = async () => {
 }
 
 const openModal = () => {
+  editingUserId.value = null
   showModal.value = true
   formError.value = null
-  formData.value = { name: '', description: '' }
+  formData.value = emptyForm()
+}
+
+const openEditModal = (user) => {
+  editingUserId.value = user.id
+  showModal.value = true
+  formError.value = null
+  formData.value = {
+    name: user.name || '',
+    email: user.email || '',
+    password: '',
+    role: mapUserRoleToForm(user.role) || 'member',
+  }
 }
 
 const closeModal = () => {
   showModal.value = false
   formError.value = null
-  formData.value = { name: '', description: '' }
+  editingUserId.value = null
+  formData.value = emptyForm()
 }
+
 const submitForm = async () => {
   if (!formData.value.name.trim()) {
-    formError.value = 'Session name is required'
+    formError.value = 'Name is required'
+    return
+  }
+  if (!formData.value.email.trim()) {
+    formError.value = 'Email is required'
+    return
+  }
+  if (!formData.value.role) {
+    formError.value = 'Role is required'
+    return
+  }
+  if (!isEditMode.value && !formData.value.password) {
+    formError.value = 'Password is required'
     return
   }
 
   submitting.value = true
+  formError.value = null
   try {
-    await api.post('/api/users', {
-      name: formData.value.name,
-      email: formData.value.email,
-      role: 'user' ,// Default role, adjust as needed
-      password: formData.value.password
-    })
+    const role = formRoleForApi(formData.value.role)
+    if (isEditMode.value) {
+      const payload = {
+        name: formData.value.name.trim(),
+        email: formData.value.email.trim(),
+        role,
+      }
+      if (formData.value.password) {
+        payload.password = formData.value.password
+      }
+      await api.put(`/api/users/${editingUserId.value}`, payload)
+    } else {
+      await api.post('/api/users', {
+        name: formData.value.name.trim(),
+        email: formData.value.email.trim(),
+        role,
+        password: formData.value.password,
+      })
+    }
     await fetchUsers()
     closeModal()
   } catch (err) {
-    formError.value = err.response?.data?.message || 'Failed to create user'
-    console.error('Error creating user:', err)
+    const msg = err.response?.data?.message
+    const errors = err.response?.data?.errors
+    formError.value =
+      (errors && Object.values(errors).flat().join(' ')) ||
+      msg ||
+      (isEditMode.value ? 'Failed to update user' : 'Failed to create user')
+    console.error(isEditMode.value ? 'Error updating user:' : 'Error creating user:', err)
   } finally {
     submitting.value = false
   }
@@ -71,18 +198,79 @@ const submitForm = async () => {
 <template>
 <main class="h-full overflow-y-auto">
     <div class="container px-6 mx-auto grid">
-        <div class="flex items-center justify-between">
-            <h2
-                class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200"
-            >
-                Users
-            </h2>
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <h2
+            class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200"
+          >
+            Users
+          </h2>
+          <div class="flex gap-2 items-center flex-wrap">
             <button @click="openModal"
-                class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple"
+              class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple"
             >
-                Add User
+              Add User
             </button>
+            <button @click="openImportModal" class="px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-green-600 border border-transparent rounded-lg active:bg-green-600 hover:bg-green-700 focus:outline-none focus:shadow-outline-green">
+              Import Users
+            </button>
+            <a href="/user_import_format.csv" download class="px-4 py-2 text-sm font-medium leading-5 text-purple-700 bg-purple-100 border border-purple-300 rounded-lg hover:bg-purple-200 focus:outline-none focus:shadow-outline-purple">
+              Download Format
+            </a>
+          </div>
         </div>
+
+        <!-- Import Users Modal (AssessmentPanel style) -->
+        <Teleport to="body">
+          <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeImportModal"></div>
+
+            <!-- Dialog -->
+            <div class="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+              <!-- Header -->
+              <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5">
+                <h3 class="text-xl font-bold text-white">
+                  Import Users from CSV
+                </h3>
+                <p class="text-purple-100 text-sm mt-0.5">
+                  Upload a CSV file to bulk import users
+                </p>
+              </div>
+
+              <!-- Body -->
+              <div class="px-6 py-6 space-y-5 overflow-y-auto max-h-[65vh]">
+                <input id="import-users-file" type="file" accept=".csv,text/csv" class="mb-4 block w-full text-sm text-gray-700 dark:text-gray-200" @change="handleImportFileChange" />
+                <div v-if="importError" class="mb-2 p-2 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-200 rounded text-sm">
+                  {{ importError }}
+                </div>
+                <div v-if="importResult" class="mb-2 p-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-200 rounded text-sm">
+                  Imported: {{ importResult.imported }} users.
+                  <span v-if="importResult.errors && importResult.errors.length">Some rows failed: {{ importResult.errors.length }}</span>
+                </div>
+                <div class="mb-2 text-xs text-gray-500 dark:text-gray-400">CSV columns: <b>name, email, password, role</b></div>
+              </div>
+
+              <!-- Footer -->
+              <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-3">
+                <button
+                  @click="closeImportModal"
+                  :disabled="importLoading"
+                  class="px-5 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="importUsers"
+                  :disabled="importLoading || !importFile"
+                  class="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm font-semibold rounded-xl hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <span v-if="importLoading" class="animate-spin inline-block">⟳</span>
+                  {{ importLoading ? 'Importing...' : 'Import Users' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
         <div class="w-full overflow-hidden rounded-lg shadow-xs">
                 <div class="w-full overflow-x-auto">
                 <table class="w-full whitespace-no-wrap">
@@ -100,17 +288,17 @@ const submitForm = async () => {
                     class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800"
                     >
                       <tr v-if="loading">
-                        <td colspan="3" class="px-4 py-3 text-center">
+                        <td colspan="4" class="px-4 py-3 text-center">
                           Loading users...
                         </td>
                       </tr>
                       <tr v-else-if="error">
-                        <td colspan="3" class="px-4 py-3 text-center text-red-600">
+                        <td colspan="4" class="px-4 py-3 text-center text-red-600">
                           Failed to load users.
                         </td>
                       </tr>
                       <tr v-else-if="users.length === 0">
-                        <td colspan="3" class="px-4 py-3 text-center">
+                        <td colspan="4" class="px-4 py-3 text-center">
                           No users found.
                         </td>
                       </tr>
@@ -150,7 +338,15 @@ const submitForm = async () => {
                               {{ user.role }}
                             </span>
                           </td>
-                          <td></td>
+                          <td class="px-4 py-3 text-sm">
+                            <button
+                              type="button"
+                              @click="openEditModal(user)"
+                              class="px-3 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-100 dark:hover:bg-purple-800"
+                            >
+                              Edit
+                            </button>
+                          </td>
                         </tr>
                       </template>
                     </tbody>
@@ -266,7 +462,7 @@ const submitForm = async () => {
             <div class="sm:flex sm:items-start">
               <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
                 <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-200" id="modal-title">
-                  Create New Session
+                  {{ isEditMode ? 'Edit User' : 'Create New User' }}
                 </h3>
                 <div class="mt-2">
                   <div class="mb-4">
@@ -276,7 +472,7 @@ const submitForm = async () => {
                     <input
                       v-model="formData.name"
                       type="text"
-                      placeholder="Enter session name"
+                      placeholder="Enter name"
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                       :disabled="submitting"
                     />
@@ -293,14 +489,28 @@ const submitForm = async () => {
                       :disabled="submitting"
                     />
                   </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Role *
+                    </label>
+                    <select
+                      v-model="formData.role"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      :disabled="submitting"
+                    >
+                      <option v-for="opt in ROLE_OPTIONS" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </option>
+                    </select>
+                  </div>
                    <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Password *
+                      Password {{ isEditMode ? '(optional)' : '*' }}
                     </label>
                      <input
                       v-model="formData.password"
                       type="password"
-                      placeholder="Enter password"
+                      :placeholder="isEditMode ? 'Leave blank to keep current password' : 'Enter password'"
                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                       :disabled="submitting"
                     />
@@ -318,7 +528,7 @@ const submitForm = async () => {
               :disabled="submitting"
               class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ submitting ? 'Creating...' : 'Create Session' }}
+              {{ submitting ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save User' : 'Create User') }}
             </button>
             <button
               @click="closeModal"

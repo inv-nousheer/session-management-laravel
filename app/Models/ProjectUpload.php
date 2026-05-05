@@ -8,25 +8,35 @@ use Illuminate\Database\Eloquent\Model;
 class ProjectUpload extends Model
 {
     use HasFactory;
+    protected $table = 'events_users_events_assessments';
 
     protected $fillable = [
-        'session_id',
-        'session_member_id',
+        'events_users_id',
+        'events_assessments_id',
+        'file_name',
         'file_path',
+        'status',
+        'is_submitted_late',
+        'file_path',
+        'score'
     ];
 
-    public function session()
-    {
-        return $this->belongsTo(Session::class);
-    }
-
-    public function sessionMember()
+   public function sessionMember()
     {
         return $this->belongsTo(SessionMember::class);
     }
 
+    public function assessment()
+    {
+        return $this->belongsTo(Assessment::class, 'events_assessments_id', 'id');
+    }
+
     public function comments()
     {
-        return $this->hasMany(Comment::class);
+        //return $this->hasOne(Comment::class, 'events_users_events_assessments_id', 'id');
+         return $this->hasMany(Comment::class, 'events_users_events_assessments_id')
+                ->whereNull('parent_id') // only top-level
+                ->with('replies');       // load replies
     }
+
 }
