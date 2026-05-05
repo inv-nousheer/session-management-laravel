@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreignId('events_assessments_id')->constrained('events_assessments')->onDelete('cascade');
             $table->string('file_path');
             $table->string('file_name');
-            $table->
             $table->tinyInteger('status')->default(1);
             $table->tinyInteger('is_submitted_late')->default(0)->comment('0 for on time, 1 for late');
             $table->timestamps();

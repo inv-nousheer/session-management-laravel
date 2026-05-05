@@ -191,6 +191,7 @@ const downloadCsvReport = async ( user) => {
               class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 p-6"
             >
               <div class="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-600 to-purple-400"></div>
+              <a href=""  @click="$router.push(`users/sessions/${member.user.id}`)">
               <div class="mb-4">
                 <div
                   class="w-12 h-12 bg-linear-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg mb-3"
@@ -211,6 +212,7 @@ const downloadCsvReport = async ( user) => {
                   </span>
                 </p>
               </div>
+              </a>
               <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button
                   type="button"

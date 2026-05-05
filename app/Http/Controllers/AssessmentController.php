@@ -34,7 +34,11 @@ class AssessmentController extends Controller
             'supporting_files' => 'file',
             'description' => 'nullable|string',
         ]);
-        $path = $request->file('supporting_files')->store('public/uploads');
+        if($request->file('supporting_files')){
+            $path = $request->file('supporting_files')->store('public/uploads');
+        }else{
+            $path = null;
+        }
         $assessment = Assessment::create([
             'events_id' => $validated['events_id'],
             'name' => $validated['name'],

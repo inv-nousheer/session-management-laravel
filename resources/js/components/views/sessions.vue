@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter,useRoute } from 'vue-router'
 import api from '../../services/axios'
 import flatpickr from 'flatpickr'
 import 'flatpickr/dist/flatpickr.min.css'
 
 const router = useRouter()
+const route = useRoute()
 
 const sessions = ref([])
 const loading = ref(true)
@@ -202,8 +203,16 @@ onMounted(async () => {
 const fetchSessions = async () => {
   loading.value = true
   try {
-    const user_id = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null
-    const res = await api.get(`/api/sessions/user/${user_id}`)
+
+   const user_id = computed(() => {
+        if (route.path.startsWith('/user-dashboard/users/sessions')) {
+            return route.params.id
+        } else {
+            const user = localStorage.getItem('user')
+            return user ? JSON.parse(user).id : null
+        }
+    })
+    const res = await api.get(`/api/sessions/user/${user_id.value}`)
     sessions.value = res.data
   } catch (err) {
     error.value = err
