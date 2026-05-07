@@ -12,11 +12,17 @@ class Comment extends Model
     protected $table = 'comments';
 
     protected $fillable = [
+        'events_assessments_id',
         'events_users_events_assessments_id',
         'users_id',
         'comments',
         'parent_id',
     ];
+
+    public function assessment()
+    {
+        return $this->belongsTo(Assessment::class, 'events_assessments_id', 'id');
+    }
 
 //    public function sessionMember()
 //     {

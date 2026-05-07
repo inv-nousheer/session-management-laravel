@@ -19,18 +19,37 @@ const fetchUserAssessments = async () => {
   try {
     const res = await api.get(`/api/users-assessments/${sessionId.value}/${user_id}`)
     console.log('res',res.data);
-   
-    const filteredAssessments = Object.values(
-      res.data.reduce((acc, item) => {
-      const assessmentId = item.assessment.id
 
-      // Keep replacing so the last matching item remains
-      acc[assessmentId] = item
+    const groupedAssessments = Object.values(
+      (Array.isArray(res.data) ? res.data : []).reduce((acc, item) => {
+        const assessmentId = item?.assessment?.id
+        if (!assessmentId) return acc
 
-      return acc
-    }, {})
-  )
-  assessments.value = filteredAssessments;
+        if (!acc[assessmentId]) {
+          acc[assessmentId] = {
+            ...item,
+            upload_ids: [item.id],
+            latest_upload_id: item.id,
+          }
+          return acc
+        }
+
+        acc[assessmentId].upload_ids = [
+          ...new Set([...(acc[assessmentId].upload_ids || []), item.id]),
+        ]
+
+        // Keep the latest upload payload as the representative row.
+        acc[assessmentId] = {
+          ...acc[assessmentId],
+          ...item,
+          upload_ids: [...new Set([...(acc[assessmentId].upload_ids || []), item.id])],
+          latest_upload_id: item.id,
+        }
+
+        return acc
+      }, {})
+    )
+    assessments.value = groupedAssessments
 console.log('assessments',assessments.value);
   } catch (err) {
     error.value = true
@@ -40,19 +59,41 @@ console.log('assessments',assessments.value);
   }
 }
 
-const handleReply = async (uploadId, commentId) => {
-  if (!replies.value[uploadId]?.trim()) return
+const handleReply = async (upload, commentId) => {
+  const replyKey = upload?.assessment?.id ?? upload?.events_assessments_id ?? upload?.id
+  if (!replyKey) return
+  if (!replies.value[replyKey]?.trim()) return
+  const assessmentId = upload.events_assessments_id ?? upload.assessment?.id
+  if (!assessmentId) {
+    alert('Could not determine assessment for this submission.')
+    return
+  }
+  const parentComment = selectedFeedbackComments.value.find((c) => c.id === commentId)
+  const uploadIdForComment =
+    parentComment?.events_users_events_assessments_id ??
+    upload.latest_upload_id ??
+    upload.id
+
+  if (!uploadIdForComment) {
+    alert('Could not determine upload for this comment.')
+    return
+  }
   try {
     await api.post('/api/comments', {
-      events_users_events_assessments_id: uploadId,
-      comments: replies.value[uploadId]?.trim(),
+      events_users_events_assessments_id: uploadIdForComment,
+      events_assessments_id: assessmentId,
+      comments: replies.value[replyKey]?.trim(),
       users_id: user_id,
       parent_id: commentId
     })
-    replies.value[uploadId] = ''
+    replies.value[replyKey] = ''
     await fetchUserAssessments()
     if (selectedFeedback.value) {
-      const updated = assessments.value.find(a => a.id === selectedFeedback.value.id)
+      const selectedAssessmentId =
+        selectedFeedback.value?.assessment?.id ?? selectedFeedback.value?.events_assessments_id
+      const updated = assessments.value.find(
+        (a) => (a?.assessment?.id ?? a?.events_assessments_id) === selectedAssessmentId
+      )
       if (updated) selectedFeedback.value = updated
     }
   } catch (err) {
@@ -104,10 +145,27 @@ const getAuthorName = (item) => {
 
 // Parent thread comment from instructor (for reply parent_id) — prefer explicit non-student top-level comment
 const instructorComment = computed(() => {
-  const list = selectedFeedback.value?.comments || []
+  const list = selectedFeedbackComments.value
   const byRole = list.find((c) => !isStudentComment(c))
   if (byRole) return byRole
   return list.find((c) => !isUploadComment(c))
+})
+
+const selectedFeedbackUploadIds = computed(() => {
+  if (!selectedFeedback.value) return []
+  const ids = selectedFeedback.value.upload_ids
+  if (Array.isArray(ids) && ids.length) return ids
+  return selectedFeedback.value.id ? [selectedFeedback.value.id] : []
+})
+
+const selectedFeedbackComments = computed(() => {
+  const comments = selectedFeedback.value?.assessment?.comments || []
+  const uploadIds = new Set(selectedFeedbackUploadIds.value)
+  if (!uploadIds.size) return comments
+
+  return comments.filter((comment) =>
+    uploadIds.has(comment?.events_users_events_assessments_id)
+  )
 })
 
 const hasScore = (upload) => upload?.score !== null && upload?.score !== undefined
@@ -288,7 +346,7 @@ onMounted(async () => {
           <div class="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-0">
 
             <!-- No activity -->
-            <div v-if="!selectedFeedback.comments?.length" class="flex flex-col items-center justify-center h-full text-center py-12">
+            <div v-if="!selectedFeedbackComments.length" class="flex flex-col items-center justify-center h-full text-center py-12">
               <div class="w-11 h-11 bg-gray-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mb-3">
                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -299,7 +357,7 @@ onMounted(async () => {
             </div>
 
             <template v-else>
-              <div v-for="comment in selectedFeedback.comments" :key="comment.id">
+              <div v-for="comment in selectedFeedbackComments" :key="comment.id">
                 <div :class="['flex w-full', isStudentComment(comment) ? 'justify-start' : 'justify-end']">
                   <div
                     :class="[
@@ -407,14 +465,14 @@ onMounted(async () => {
           >
             <div class="flex gap-2 items-end">
               <textarea
-                v-model="replies[selectedFeedback.id]"
+                v-model="replies[selectedFeedback.assessment?.id]"
                 placeholder="Reply to instructor feedback…"
                 rows="2"
                 class="flex-1 px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none transition-all"
               ></textarea>
               <button
-                @click="handleReply(selectedFeedback.id, instructorComment.id)"
-                :disabled="!replies[selectedFeedback.id]?.trim()"
+                @click="handleReply(selectedFeedback, instructorComment.id)"
+                :disabled="!replies[selectedFeedback.assessment?.id]?.trim()"
                 class="px-4 py-2 bg-violet-600 text-white text-sm font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
               >
                 Reply

@@ -35,5 +35,8 @@ class Assessment extends Model
         return $this->hasMany(AssessmentReopenRequest::class, 'events_assessments_id', 'id');
     }
 
-
+    public function comments()
+    {
+        return $this->hasMany(Comment::class, 'events_assessments_id', 'id');
+    }
 }

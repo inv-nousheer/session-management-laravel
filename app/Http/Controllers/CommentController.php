@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 use App\Models\ProjectUpload;
+use Illuminate\Validation\ValidationException;
 
 
 class CommentController extends Controller
@@ -20,10 +21,19 @@ class CommentController extends Controller
     {
         $validated = $request->validate([
             'events_users_events_assessments_id' => 'required|exists:events_users_events_assessments,id',
+            'events_assessments_id' => 'required|exists:events_assessments,id',
             'users_id' => 'required|exists:users,id',
             'comments' => 'required|string',
             'parent_id' => 'nullable|exists:comments,id',
         ]);
+
+        $upload = ProjectUpload::query()->findOrFail($validated['events_users_events_assessments_id']);
+        if ((int) $upload->events_assessments_id !== (int) $validated['events_assessments_id']) {
+            throw ValidationException::withMessages([
+                'events_assessments_id' => ['Assessment does not match this submission.'],
+            ]);
+        }
+
         $comment = Comment::create($validated);
         return response()->json($comment, 201);
     }

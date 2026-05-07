@@ -18,6 +18,7 @@ class AssessmentController extends Controller
     {
         return response()->json(
             Assessment::with([
+                'comments',
                 'session.sessionMembers.user',
                 // 'session.sessionMembers.projectUploads' => function ($query) {
                 //     $query->whereColumn('events_assessments_id', 'id');
@@ -118,6 +119,7 @@ class AssessmentController extends Controller
 
         $comment = Comment::create([
             'events_users_events_assessments_id' => $projectUpload->id,
+            'events_assessments_id' => $validated['assessment_id'],
             'users_id' => $validated['user_id'],
             'comments' => 'New file uploaded',
         ]);
@@ -144,7 +146,7 @@ class AssessmentController extends Controller
         $sessionMember = SessionMember::where('events_id', $session_id)
             ->where('users_id', $user_id)
             ->first();
-        $projectUploads = ProjectUpload::where('events_users_id', $sessionMember->id)->with('assessment')->with('comments')->get();
+        $projectUploads = ProjectUpload::where('events_users_id', $sessionMember->id)->with('assessment.comments')->with('comments')->get();
 
         return response()->json($projectUploads);
     }

@@ -312,7 +312,7 @@ const hasUserSubmitted = (assessment) => {
   const submission = member.project_uploads.find(
     upload => upload.events_assessments_id === assessment.id
   )
-  console.log(submission);
+  console.log("submission",submission);
 
   return submission
 }
