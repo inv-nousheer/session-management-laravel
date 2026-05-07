@@ -40,7 +40,7 @@ class SessionMember extends Model
     }
     public function projectUploads()
     {
-        return $this->hasOne(ProjectUpload::class,'events_users_id','id');
+        return $this->hasMany(ProjectUpload::class,'events_users_id','id');
     }
 
     public function assessmentReopenRequests()

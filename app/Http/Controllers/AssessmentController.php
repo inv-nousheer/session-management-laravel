@@ -9,6 +9,8 @@ use App\Models\Session;
 use App\Models\AssessmentReopenRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Comment;
+
 
 class AssessmentController extends Controller
 {
@@ -17,6 +19,9 @@ class AssessmentController extends Controller
         return response()->json(
             Assessment::with([
                 'session.sessionMembers.user',
+                // 'session.sessionMembers.projectUploads' => function ($query) {
+                //     $query->whereColumn('events_assessments_id', 'id');
+                // },
                 'session.sessionMembers.projectUploads.comments.replies'
             ])
             ->where('events_id', $id)
@@ -109,7 +114,12 @@ class AssessmentController extends Controller
             'events_assessments_id' => $validated['assessment_id'],
             'file_path' => $path,
             'file_name' => $path,
+        ]);
 
+        $comment = Comment::create([
+            'events_users_events_assessments_id' => $projectUpload->id,
+            'users_id' => $validated['user_id'],
+            'comments' => 'New file uploaded',
         ]);
 
         return response()->json($projectUpload, 201);

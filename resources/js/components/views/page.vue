@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
 import api from '../../services/axios.js'
 
@@ -10,6 +10,7 @@ import User from './users.vue'
 const isSideMenuOpen = ref(false)
 const dark = ref(false)
 const profileMenuOpen = ref(false)
+const profileMenuRef = ref(null)
 
 // router
 const route = useRoute()
@@ -35,6 +36,11 @@ onMounted(() => {
 
   dark.value = shouldUseDarkTheme
   root.classList.toggle('dark', shouldUseDarkTheme)
+  document.addEventListener('click', handleProfileMenuOutsideClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleProfileMenuOutsideClick)
 })
 
 const toggleTheme = () => {
@@ -55,15 +61,24 @@ const closeProfileMenu = () => {
   profileMenuOpen.value = false
 }
 
+const handleProfileMenuOutsideClick = (event) => {
+  if (!profileMenuOpen.value) return
+
+  const target = event.target
+  if (profileMenuRef.value && !profileMenuRef.value.contains(target)) {
+    closeProfileMenu()
+  }
+}
+
 const logout = async () => {
   try {
    const token = localStorage.getItem('token')
 
-    await api.post('/api/logout', {}, {
-    headers: {
-        Authorization: `Bearer ${token}`
-    }
-    })
+    // await api.post('/api/logout', {}, {
+    // headers: {
+    //     Authorization: `Bearer ${token}`
+    // }
+    // })
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     window.location.href = '/login'
@@ -111,16 +126,16 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
 </script>
 <template>
  <div
-      class="flex min-h-screen bg-white-900 dark:bg-gray-900"
+      class="flex min-h-screen bg-slate-50 dark:bg-slate-950"
       :class="{ 'overflow-hidden': isSideMenuOpen }"
     >
-      <!-- Desktop sidebar -->
+      <!-- Desktop sidebar: soft violet tint (light) vs cool slate (dark) -->
       <aside
-        class="z-20 hidden w-64 overflow-y-auto bg-purple-200 dark:bg-gray-800 md:block flex-shrink-0"
+        class="z-20 hidden w-64 shrink-0 overflow-y-auto border-r border-violet-200/70 bg-linear-to-b from-violet-50 via-indigo-50/90 to-slate-50 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 md:block"
       >
-        <div class="py-4 text-gray-500 dark:text-gray-400">
+        <div class="py-4 text-slate-600 dark:text-slate-400">
           <a
-            class="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200"
+            class="ml-6 text-lg font-bold tracking-tight text-slate-900 dark:text-white"
             href="#"
           >
             Session Management
@@ -128,13 +143,13 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
           <ul class="mt-6">
             <li  class="relative px-6 py-3">
               <span  v-if="adminActiveElement === 'dashboard' || activeElement==='dashboard'"
-                class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg"
+                class="absolute inset-y-0 left-0 w-1 rounded-tr-lg rounded-br-lg bg-violet-600 dark:bg-violet-400"
                 aria-hidden="true"
               ></span>
                 <a
 
                     v-if="role === 'admin'"
-                    class="inline-flex items-center w-full text-sm font-semibold text-gray-800 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200 dark:text-gray-100"
+                    class="inline-flex items-center w-full text-sm font-semibold text-slate-800 transition-colors duration-150 hover:text-violet-800 dark:text-slate-100 dark:hover:text-white"
                     @click="$router.push('/dashboard')"
                     href=""
                     >
@@ -160,8 +175,8 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
                     :class="[
                     'inline-flex items-center w-full text-sm font-semibold transition-colors duration-150',
                     activeElement === 'dashboard'
-                      ? 'text-gray-600 dark:text-white'
-                      : 'text-gray-800 dark:text-gray-100 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'text-violet-800 dark:text-white'
+                      : 'text-slate-800 dark:text-slate-100 hover:text-violet-800 dark:hover:text-white'
                     ]"
                      @click="$router.push('/user-dashboard')"
                     >
@@ -186,11 +201,11 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
             </li>
             <li v-if="role==='admin' || role==='tl'" class="relative px-6 py-3">
                  <span v-if="adminActiveElement==='users' || activeElement==='users'"
-                class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg "
+                class="absolute inset-y-0 left-0 w-1 rounded-tr-lg rounded-br-lg bg-violet-600 dark:bg-violet-400"
                 aria-hidden="true"
               ></span>
               <a
-                class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200 dark:text-gray-100"
+                class="inline-flex items-center w-full text-sm font-semibold text-slate-800 transition-colors duration-150 hover:text-violet-800 dark:text-slate-100 dark:hover:text-white"
                @click="goToUsers"
               >
                 <svg
@@ -212,15 +227,15 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
             </li>
             <li class="relative px-6 py-3">
                  <span v-if="activeElement === 'session' || adminActiveElement==='session'"
-                class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg"
+                class="absolute inset-y-0 left-0 w-1 rounded-tr-lg rounded-br-lg bg-violet-600 dark:bg-violet-400"
                 aria-hidden="true"
               ></span>
               <button
               :class="[
                     'inline-flex items-center w-full text-sm font-semibold transition-colors duration-150',
-                    activeElement === 'dashboard'
-                      ? 'text-gray-600 dark:text-white'
-                      : 'text-gray-800 dark:text-gray-100 hover:text-gray-800 dark:hover:text-gray-200'
+                    activeElement === 'session' || adminActiveElement === 'session'
+                      ? 'text-violet-800 dark:text-white'
+                      : 'text-slate-800 dark:text-slate-100 hover:text-violet-800 dark:hover:text-white'
                     ]" @click="goToSessions"
               >
                 <svg
@@ -247,19 +262,20 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
 
 
 
-      <div class="flex flex-col flex-1 w-full">
-        <header class="z-10 py-4 bg-purple-200 shadow-md dark:bg-gray-800">
+      <div class="flex flex-col flex-1 w-full min-w-0">
+        <!-- Header: clean white (light) vs deep indigo (dark) — distinct from sidebar -->
+        <header class="z-10 border-b border-slate-200/90 bg-white/90 py-4 shadow-sm backdrop-blur-md dark:border-indigo-950/80 dark:bg-indigo-950/95 dark:shadow-indigo-950/20">
           <div
-            class="container flex items-center justify-between h-full px-6 mx-auto text-purple-600 dark:text-purple-300"
+            class="container mx-auto flex h-full items-center justify-between px-6 text-slate-700 dark:text-indigo-100"
           >
             <!-- Mobile hamburger -->
             <button
-              class="p-1 mr-5 -ml-1 rounded-md md:hidden focus:outline-none focus:shadow-outline-purple"
+              class="-ml-1 mr-5 rounded-md p-1 text-slate-700 hover:bg-slate-100 focus:outline-none focus:shadow-outline-purple dark:text-indigo-100 dark:hover:bg-indigo-900/50 md:hidden"
               @click="toggleSideMenu"
               aria-label="Menu"
             >
               <svg
-                class="w-6 h-6"
+                class="h-6 w-6"
                 aria-hidden="true"
                 fill="currentColor"
                 viewBox="0 0 20 20"
@@ -272,19 +288,19 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
               </svg>
             </button>
             <!-- Search input -->
-            <div class="flex justify-center flex-1 lg:mr-32">
+            <div class="flex flex-1 justify-center lg:mr-32">
               <div
-                class="relative w-full max-w-xl mr-6 focus-within:text-purple-500"
+                class="relative mr-6 w-full max-w-xl focus-within:text-violet-600 dark:focus-within:text-violet-300"
               >
 
 
               </div>
             </div>
-            <ul class="flex items-center flex-shrink-0 space-x-6">
+            <ul class="flex shrink-0 items-center space-x-6">
               <!-- Theme toggler -->
               <li class="flex">
                 <button
-                  class="rounded-md focus:outline-none focus:shadow-outline-purple"
+                  class="rounded-lg p-1.5 text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus:shadow-outline-purple dark:text-indigo-200 dark:hover:bg-indigo-900/60"
                   @click="toggleTheme"
                   aria-label="Toggle color mode"
                 >
@@ -318,9 +334,9 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
               </li>
 
               <!-- Profile menu -->
-              <li class="relative">
+              <li ref="profileMenuRef" class="relative">
                 <button
-                  class="align-middle rounded-full focus:shadow-outline-purple focus:outline-none"
+                  class="align-middle rounded-full ring-2 ring-transparent transition-shadow focus:outline-none focus:shadow-outline-purple focus:ring-violet-400/40 dark:focus:ring-violet-500/30"
                   @click="toggleProfileMenu"
                   @keydown.escape="closeProfileMenu"
                   aria-label="Account"
@@ -333,10 +349,31 @@ const user_name = JSON.parse(localStorage.getItem('user'))?.name
                     aria-hidden="true"
                   />
                 </button>
-                <div v-if="profileMenuOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
-                    <p class="px-2 text-sm text-white">{{ user_name }} </p>
-                  <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit Profile</a>
-                  <a href="#" @click="logout" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+                <div
+                  v-if="profileMenuOpen"
+                  class="absolute right-0 mt-3 w-64 z-20 overflow-hidden rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 shadow-xl backdrop-blur-sm"
+                >
+                  <div class="px-4 py-3 bg-linear-to-r from-purple-600 to-indigo-600">
+                    <p class="text-xs uppercase tracking-wider text-purple-100">Signed in as</p>
+                    <p class="text-sm font-semibold text-white truncate">{{ user_name }}</p>
+                  </div>
+
+                  <div class="p-2">
+                    <button
+                      type="button"
+                      @click="closeProfileMenu"
+                      class="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Edit Profile
+                    </button>
+                    <button
+                      type="button"
+                      @click="logout"
+                      class="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </li>
             </ul>

@@ -71,6 +71,43 @@ class SessionController extends Controller
         return response()->json($sessions);
     }
 
+    // GET /api/sessions/tags
+    // Returns distinct existing tags from events.tags CSV values.
+    public function tags()
+    {
+        $rawTags = Session::query()
+            ->whereNotNull('tags')
+            ->pluck('tags');
+
+        $seen = [];
+        $list = [];
+
+        foreach ($rawTags as $csv) {
+            if (!is_string($csv) || trim($csv) === '') {
+                continue;
+            }
+
+            foreach (explode(',', $csv) as $tag) {
+                $tag = trim($tag);
+                if ($tag === '') {
+                    continue;
+                }
+
+                $key = mb_strtolower($tag);
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $list[] = $tag;
+            }
+        }
+
+        usort($list, fn ($a, $b) => strcasecmp($a, $b));
+
+        return response()->json($list);
+    }
+
     /**
      * GET /api/sessions/user/{user_id}/as-team-lead/members
      * Sessions where the user is a team lead (events_users.role = 2), each with all session members (user included).
@@ -122,8 +159,33 @@ class SessionController extends Controller
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'date' => 'required|date',
+            'teamlead_ids' => 'sometimes|array',
+            'teamlead_ids.*' => 'exists:users,id',
         ]);
-        $session->update($validated);
+
+        $teamleadIds = array_values(array_unique($validated['teamlead_ids'] ?? []));
+        unset($validated['teamlead_ids']);
+
+        DB::transaction(function () use ($session, $validated, $teamleadIds) {
+            $session->update($validated);
+
+            // Keep only selected team leads (role = 2) for this session.
+            SessionMember::query()
+                ->where('events_id', $session->id)
+                ->where('role', 2)
+                ->whereNotIn('users_id', $teamleadIds)
+                ->delete();
+
+            foreach ($teamleadIds as $userId) {
+                SessionMember::updateOrCreate(
+                    ['events_id' => $session->id, 'users_id' => $userId],
+                    ['role' => 2, 'status' => 1]
+                );
+            }
+        });
+
+        $session->refresh();
+
         return response()->json($session);
     }
 
@@ -204,22 +266,44 @@ class SessionController extends Controller
                     ->get();
         return response()->json($members);
     }
-    public function dashboardData()
+    public function dashboardData(Request $request)
     {
-        $totalSessions = Session::count();
-        $sessionsPerMonth = Session::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+        $userId = (int) $request->query('user_id');
+
+        $sessionQuery = Session::query();
+        if ($userId > 0) {
+            $sessionQuery->where(function ($q) use ($userId) {
+                $q->where('created_by', $userId)
+                    ->orWhereHas('sessionMembers', function ($memberQ) use ($userId) {
+                        $memberQ->where('users_id', $userId);
+                    });
+            });
+        }
+
+        $sessionIds = (clone $sessionQuery)->pluck('id');
+
+        $totalSessions = (clone $sessionQuery)->count();
+        $sessionsPerMonth = (clone $sessionQuery)->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
             ->groupBy('month')
             ->get();
-        $assessments = Assessment::selectRaw('MONTH(created_at) as month, COUNT(*) as count')
+
+        $assessmentQuery = Assessment::query();
+        if ($sessionIds->isNotEmpty()) {
+            $assessmentQuery->whereIn('events_id', $sessionIds);
+        } elseif ($userId > 0) {
+            $assessmentQuery->whereRaw('1 = 0');
+        }
+
+        $assessments = (clone $assessmentQuery)->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
             ->groupBy('month')
             ->get();
-        $totalassessments = Assessment::count();
-        $pendingassessments = Assessment::whereDate('start_date_time', '<=', now())
+        $totalassessments = (clone $assessmentQuery)->count();
+        $pendingassessments = (clone $assessmentQuery)->whereDate('start_date_time', '<=', now())
             ->whereDate('end_date_time', '>=', now())
             ->count();
-        $completedassessments = Assessment::where('end_date_time', '<=', now())->count();
-        $recentSessions = Session::orderBy('id','DESC')->take(4)->get();
-        $recentAssesments = Assessment::orderBy('id','DESC')->take(4)->get();
+        $completedassessments = (clone $assessmentQuery)->where('end_date_time', '<=', now())->count();
+        $recentSessions = (clone $sessionQuery)->orderBy('id','DESC')->take(4)->get();
+        $recentAssesments = (clone $assessmentQuery)->orderBy('id','DESC')->take(4)->get();
 
         return response()->json([
             'total_sessions' => $totalSessions,

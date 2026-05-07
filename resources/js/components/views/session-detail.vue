@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/axios.js'
 import MembersPanel from '@/components/views/membersPanel.vue'
 import UploadsPanel from '@/components/views/uploadsPanel.vue'
@@ -11,6 +11,17 @@ import SessionSettings from '@/components/views/session-settings.vue'
 import ReopenrequestsPanel from '@/components/views/reopenrequestsPanel.vue'
 
 const route = useRoute()
+const router = useRouter()
+
+const user_role = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).role : null
+
+const sessionsListPath = computed(() =>
+  user_role === 'admin' ? '/dashboard/sessions' : '/user-dashboard/sessions'
+)
+
+const goBackToSessions = () => {
+  router.push(sessionsListPath.value)
+}
 const showModal = ref(false)
 const submitting = ref(false)
 const loading = ref(false)
@@ -150,10 +161,23 @@ const submitForm = async () => {
 
 <template>
     <div class="p-6">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ sessionDetails.title }}</h1>
-          <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ sessionDetails.description }}</p>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+        <div class="flex items-start gap-3 min-w-0">
+          <button
+            type="button"
+            @click="goBackToSessions"
+            class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            aria-label="Back to sessions"
+          >
+            <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            
+          </button>
+          <div class="min-w-0">
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ sessionDetails.title }}</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ sessionDetails.description }}</p>
+          </div>
         </div>
       </div>
 
@@ -226,6 +250,7 @@ const submitForm = async () => {
                 :error="error"
                 :activePanel="activePanel"
                 @fetchAssessments="fetchAssessments"
+                :sessionDetails="sessionDetails"
             />
             <AssessmentsPanel
                 v-if="activePanel === 'assessments'"
@@ -235,6 +260,7 @@ const submitForm = async () => {
                 :error="error"
                 :activePanel="activePanel"
                 @fetchAssessments="fetchAssessments"
+                :sessionDetails="sessionDetails"
             />
              <CommentsPanelForMembers
                 v-if="activePanel === 'comments' && sessionDetails.created_by !== user_id"

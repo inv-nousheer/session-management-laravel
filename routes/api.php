@@ -20,6 +20,7 @@ Route::get('/sessions/{id}/report', [SessionController::class, 'report']);
 Route::get('/sessions/users/{userId}/report', [SessionController::class, 'userReport']);
 Route::get('/sessions/user/{user_id}/as-team-lead/members', [SessionController::class, 'teamLeadMemberLists']);
 Route::get('/sessions/user/{user_id}', [SessionController::class, 'userSessions']);
+Route::get('/sessions/tags', [SessionController::class, 'tags']);
 Route::apiResource('sessions', SessionController::class);
 Route::get('/seminar-users/{id}', [UserController::class, 'seminarUsers']);
 

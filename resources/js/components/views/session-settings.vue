@@ -329,6 +329,7 @@ const submitting = ref(false)
 const success = ref(false)
 const error = ref(false)
 const originalForm = ref({...form.value})
+const originalTeamLeads = ref([])
 
 const fetchSession = async () => {
   try {
@@ -413,7 +414,8 @@ const updateSession = async () => {
     await api.put(`/api/sessions/${sessionId}`, {
       title: form.value.title,
       description: form.value.description,
-      date: isoDateTime
+      date: isoDateTime,
+      teamlead_ids: selectedTeamLeads.value.map((u) => u.id).filter(Boolean)
     })
     success.value = true
     originalForm.value = {...form.value}
@@ -432,6 +434,8 @@ const updateSession = async () => {
 
 const resetForm = () => {
   form.value = {...originalForm.value}
+  selectedTeamLeads.value = [...originalTeamLeads.value]
+  teamLeadSearch.value = ''
   if (picker) {
     picker.setDate(form.value.dateTime)
   }
@@ -439,8 +443,10 @@ const resetForm = () => {
   success.value = false
 }
 
-onMounted(() => {
-  fetchSession()
+onMounted(async () => {
+  await fetchSession()
+  await fetchUsers()
+  await fetchTeamLeads()
   // Initialize datepicker after component is mounted
   setTimeout(() => {
     initializeDatePicker()
@@ -505,6 +511,20 @@ const fetchUsers = async () => {
     console.error('Error loading users:', err)
   } finally {
     usersLoading.value = false
+  }
+}
+
+const fetchTeamLeads = async () => {
+  try {
+    const res = await api.get(`/api/session/${sessionId}/members`)
+    const teamLeads = (Array.isArray(res.data) ? res.data : [])
+      .filter((item) => Number(item?.role) === 2 && item?.user)
+      .map((item) => item.user)
+
+    selectedTeamLeads.value = teamLeads
+    originalTeamLeads.value = [...teamLeads]
+  } catch (err) {
+    console.error('Error loading team leads:', err)
   }
 }
 

@@ -20,10 +20,13 @@ const dashboardDetails = ref({
 })
 const chartKey = ref(0)
 const pieChartKey = ref(0)
+const currentUserId = JSON.parse(localStorage.getItem('user') || 'null')?.id ?? null
 
 const dashboardData = async () => {
   try {
-    const response = await fetch('/api/dashboard-data')
+    if (!currentUserId) throw new Error('Missing current user id')
+
+    const response = await fetch(`/api/dashboard-data?user_id=${encodeURIComponent(currentUserId)}`)
     if (!response.ok) throw new Error('Failed to fetch dashboard data')
 
     const data = await response.json()

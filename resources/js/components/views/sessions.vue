@@ -32,6 +32,9 @@ const usersLoading = ref(false)
 const usersError = ref(null)
 const teamLeadSearch = ref('')
 const selectedTeamLeads = ref([]) // array of user objects
+const existingTags = ref([])
+const existingTagsLoading = ref(false)
+const existingTagsError = ref(null)
 
 const fetchUsers = async () => {
   if (usersLoading.value) return
@@ -56,6 +59,21 @@ const filteredUsers = computed(() => {
     return hay.includes(q)
   })
 })
+
+const fetchExistingTags = async () => {
+  if (existingTagsLoading.value) return
+  existingTagsLoading.value = true
+  existingTagsError.value = null
+  try {
+    const res = await api.get('/api/sessions/tags')
+    existingTags.value = Array.isArray(res.data) ? res.data : []
+  } catch (err) {
+    existingTagsError.value = err
+    console.error('Error loading existing tags:', err)
+  } finally {
+    existingTagsLoading.value = false
+  }
+}
 
 const isSelectedTeamLead = (user) => selectedTeamLeads.value.some((u) => u?.id === user?.id)
 const toggleTeamLead = (user) => {
@@ -142,6 +160,23 @@ const allSessionTags = computed(() => {
     }
   }
   return list.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+})
+
+const tagSuggestions = computed(() => {
+  const q = tagInput.value.trim().toLowerCase()
+  if (!q) return []
+
+  const selected = new Set(formData.value.tags.map((t) => t.toLowerCase()))
+  const source = existingTags.value.length ? existingTags.value : allSessionTags.value
+
+  return source
+    .filter((tag) => {
+      const normalized = String(tag).trim()
+      if (!normalized) return false
+      const key = normalized.toLowerCase()
+      return key.includes(q) && !selected.has(key)
+    })
+    .slice(0, 8)
 })
 
 const filteredSessions = computed(() => {
@@ -287,6 +322,7 @@ const openModal = () => {
   teamLeadSearch.value = ''
   selectedTeamLeads.value = []
   fetchUsers()
+  fetchExistingTags()
 
 }
 
@@ -388,6 +424,12 @@ const addTag = () => {
   tagInput.value = ''
 }
 
+const addTagFromSuggestion = (tag) => {
+  if (!tag || submitting.value) return
+  tagInput.value = tag
+  addTag()
+}
+
 // Remove Tag
 const removeTag = (index) => {
   formData.value.tags.splice(index, 1)
@@ -482,6 +524,17 @@ watch(showModal, async (val) => {
     }
   }
 })
+
+const getMySessions = () => {
+  const user = localStorage.getItem('user')
+  const userId = user ? JSON.parse(user).id : null
+  console.log(userId);
+
+  if (!userId) return []
+
+  return sessions.value.filter(session => session.created_by === userId)
+}
+console.log('getMySessions',getMySessions());
 </script>
 <template>
 <main class="h-full overflow-y-auto">
@@ -511,7 +564,7 @@ watch(showModal, async (val) => {
 
         <!-- List filters -->
         <div
-            v-if="!loading && !error && sessions.length"
+            v-if="!loading && !error && sessions.length && getMySessions().length"
             class="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 p-4 sm:p-5 shadow-sm"
         >
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -727,7 +780,7 @@ watch(showModal, async (val) => {
         </div>
 
         <!-- Modal Content -->
-        <div class="px-6 sm:px-8 py-6 space-y-6 overflow-y-auto">
+        <div class="create-session-scrollbar px-6 sm:px-8 py-6 space-y-6 overflow-y-auto">
 
           <!-- Session Name -->
           <div>
@@ -814,6 +867,27 @@ watch(showModal, async (val) => {
                 </svg>
               </button>
             </div>
+
+            <div v-if="existingTagsLoading" class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+              Loading existing tags...
+            </div>
+            <div v-else-if="tagSuggestions.length" class="mb-3">
+              <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">Suggestions</p>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="tag in tagSuggestions"
+                  :key="tag"
+                  type="button"
+                  @click="addTagFromSuggestion(tag)"
+                  class="px-3 py-1.5 rounded-full text-xs font-medium border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 hover:border-indigo-400 transition-colors"
+                >
+                  #{{ tag }}
+                </button>
+              </div>
+            </div>
+            <p v-else-if="tagInput.trim() && existingTagsError" class="mb-2 text-xs text-red-700 dark:text-red-300">
+              Unable to load existing tags.
+            </p>
 
             <!-- Tags Display -->
             <div class="flex flex-wrap gap-2">
@@ -985,4 +1059,9 @@ watch(showModal, async (val) => {
 :deep(.flatpickr-input::placeholder) {
   color: rgb(148, 163, 184);
 }
+
+.create-session-scrollbar::-webkit-scrollbar { width: 5px; }
+.create-session-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.create-session-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.dark .create-session-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
 </style>
