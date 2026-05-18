@@ -30,6 +30,7 @@ Route::apiResource('assessments', AssessmentController::class);
 Route::post('/project-uploads', [AssessmentController::class, 'uploadProject']);
 Route::post('/project-uploads/{id}/score', [CommentController::class, 'updateScore']);
 Route::get('/sessions/{id}/assessments', [AssessmentController::class, 'forSession']);
+Route::get('/sessions/{sessionId}/assessments/{assessmentId}/member-scores', [SessionController::class, 'assessmentMemberScores']);
 Route::apiResource('comments', CommentController::class);
 Route::get('/sessions-assessments/{id}', [AssessmentController::class, 'index']);
 Route::get('/users-assessments/{session_id}/{user_id}', [AssessmentController::class, 'userAssessments']);

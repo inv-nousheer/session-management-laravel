@@ -29,6 +29,7 @@ const router = createRouter({
         {path:'session-detail/:id', component:sessionDetail},
         { path: 'users', component: UsersList },
         { path: 'users/sessions/:id', component: Session },
+        { path: 'tl-session-detail/:id/:user_id', component: sessionDetail },
         // { path: 'assessments', component: Assessments }
         ],
         meta: {   requiresAuth: true, role: 'user' }

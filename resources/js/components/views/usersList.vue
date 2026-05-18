@@ -1,11 +1,105 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../services/axios.js'
 
 const loading = ref(true)
 const error = ref(null)
-/** @type {import('vue').Ref<Array<{ session: object, members: object[] }>>} */
-const tlSessions = ref([])
+/** @type {import('vue').Ref<Array<{ session: { id: number, title?: string, date?: string }, members: object[] }>>} */
+const sessionGroups = ref([])
+
+const selectedSessionId = ref(null)
+const sessionAssessments = ref([])
+const selectedAssessmentId = ref(null)
+const assessmentScores = ref({})
+const assessmentsLoading = ref(false)
+const scoresLoading = ref(false)
+
+/** 'all' or stringified users_id */
+const selectedMemberFilter = ref('all')
+
+const currentSessionGroup = computed(() => {
+  const id = selectedSessionId.value
+  if (id == null) return null
+  return sessionGroups.value.find((g) => Number(g.session?.id) === Number(id)) ?? null
+})
+
+const currentSessionMembers = computed(() => currentSessionGroup.value?.members ?? [])
+
+const filteredTableMembers = computed(() => {
+  const list = currentSessionMembers.value
+  if (selectedMemberFilter.value === 'all') return list
+  const uid = Number(selectedMemberFilter.value)
+  if (Number.isNaN(uid)) return list
+  return list.filter((m) => Number(m.users_id) === uid)
+})
+
+const fetchAssessmentsForSession = async () => {
+  const sid = selectedSessionId.value
+  if (sid == null) {
+    sessionAssessments.value = []
+    selectedAssessmentId.value = null
+    assessmentScores.value = {}
+    return
+  }
+  assessmentsLoading.value = true
+  try {
+    const res = await api.get(`/api/sessions/${sid}/assessments`)
+    sessionAssessments.value = Array.isArray(res.data) ? res.data : []
+    if (sessionAssessments.value.length) {
+      selectedAssessmentId.value = sessionAssessments.value[0].id
+    } else {
+      selectedAssessmentId.value = null
+      assessmentScores.value = {}
+    }
+  } catch (e) {
+    console.error('usersList: assessments failed', e)
+    sessionAssessments.value = []
+    selectedAssessmentId.value = null
+    assessmentScores.value = {}
+  } finally {
+    assessmentsLoading.value = false
+  }
+}
+
+const fetchScoresForSelection = async () => {
+  const sid = selectedSessionId.value
+  const aid = selectedAssessmentId.value
+  if (sid == null || aid == null) {
+    assessmentScores.value = {}
+    return
+  }
+  scoresLoading.value = true
+  try {
+    const res = await api.get(`/api/sessions/${sid}/assessments/${aid}/member-scores`)
+    const raw = res.data?.scores
+    assessmentScores.value = raw && typeof raw === 'object' ? { ...raw } : {}
+  } catch (e) {
+    console.error('usersList: scores failed', e)
+    assessmentScores.value = {}
+  } finally {
+    scoresLoading.value = false
+  }
+}
+
+watch(selectedSessionId, async () => {
+  selectedMemberFilter.value = 'all'
+  await fetchAssessmentsForSession()
+})
+
+watch(selectedAssessmentId, () => {
+  fetchScoresForSelection()
+})
+
+const scoreDisplayForMember = (member) => {
+  if (!selectedAssessmentId.value) return '—'
+  if (scoresLoading.value) return '…'
+  const key = String(member.id)
+  const map = assessmentScores.value
+  if (!Object.prototype.hasOwnProperty.call(map, key)) return '—'
+  const v = map[key]
+  if (v === null || v === undefined || v === '') return '—'
+  return String(v)
+}
 
 const currentUser = computed(() => {
   try {
@@ -24,16 +118,10 @@ const sessionMemberRoleLabel = (role) => {
   return 'Member'
 }
 
-const mapMemberRowToUser = (item) => ({
-  ...item.user,
-  session_member_role: item.role,
-  pivot_id: item.id,
-})
-
 const fetchTlSessionsWithMembers = async () => {
   loading.value = true
   error.value = null
-  tlSessions.value = []
+  sessionGroups.value = []
 
   const uid = userId.value
   if (!uid) {
@@ -45,16 +133,33 @@ const fetchTlSessionsWithMembers = async () => {
   try {
     const res = await api.get(`/api/sessions/user/${uid}/as-team-lead/members`)
     const groups = Array.isArray(res.data) ? res.data : []
-    // tlSessions.value = groups.map((group) => ({
-    // //   session: group.session,
-    //   members: (group.members || []).map(mapMemberRowToUser).filter((m) => m?.id),
-    // }))
-    tlSessions.value = groups
+    sessionGroups.value = groups
+    if (groups.length) {
+      const firstId = groups[0].session?.id
+      if (firstId != null) {
+        selectedSessionId.value = firstId
+      }
+    } else {
+      selectedSessionId.value = null
+    }
+    selectedMemberFilter.value = 'all'
   } catch (err) {
     error.value = err
     console.error('usersList: load failed', err)
   } finally {
     loading.value = false
+  }
+}
+
+const formatSessionDate = (dateString) => {
+  if (!dateString) return '—'
+  try {
+    return new Date(dateString).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+  } catch {
+    return String(dateString)
   }
 }
 
@@ -73,7 +178,7 @@ const downloadCsvReport = async ( user) => {
     let filename = utf8Match?.[1] ? decodeURIComponent(utf8Match[1].trim().replace(/(^"|"$)/g, '')) : null
     if (!filename) {
       const m = cd.match(/filename\s*=\s*"?([^"]+)"?/i)
-      filename = m?.[1]?.trim() || `session_${sessionId}_user_${user.id}_report.csv`
+      filename = m?.[1]?.trim() || `user_${user.id}_report.csv`
     }
     const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' })
     const url = window.URL.createObjectURL(blob)
@@ -133,7 +238,7 @@ const downloadCsvReport = async ( user) => {
         </div>
       </div>
 
-      <div v-else-if="tlSessions.length === 0" class="flex items-center justify-center py-12">
+      <div v-else-if="sessionGroups.length === 0" class="flex items-center justify-center py-12">
         <div class="text-center max-w-md">
           <div class="inline-block p-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
             <svg class="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,85 +252,176 @@ const downloadCsvReport = async ( user) => {
         </div>
       </div>
 
-      <div v-else class="space-y-10">
-        <!-- <section v-for=" members in tlSessions" :key="members.id" class="space-y-4"> -->
-          <!-- Session strip (sessions.vue card style, compact) -->
-          <!-- <div
-            class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden"
-          > -->
-            <!-- <div class="h-1 bg-linear-to-r from-purple-600 to-purple-400"></div>
-            <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                  {{ session.title }}
-                </h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm mt-1 line-clamp-2">
-                  {{ session.description || 'No description provided' }}
-                </p>
-                <div class="flex items-center gap-3 mt-3 text-xs text-gray-500 dark:text-gray-500">
-                  <span class="inline-flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    {{ session.date ? new Date(session.date).toLocaleString() : '—' }}
-                  </span>
-                  <span class="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 text-[10px] font-semibold text-purple-800 dark:text-purple-200">
-                    {{ members.length }} member{{ members.length !== 1 ? 's' : '' }}
-                  </span>
-                </div>
-              </div>
-              <router-link
-                :to="`/user-dashboard/session-detail/${session.id}`"
-                class="shrink-0 px-4 py-2.5 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 rounded-lg transition-colors text-center"
-              >
-                Open session
-              </router-link>
-            </div> -->
-          <!-- </div> -->
-
-          <!-- Members grid (membersPanel.vue style) -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div
-              v-for="member in tlSessions"
-              :key="`${member.id}`"
-              class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 p-6"
+      <div v-else class="space-y-4">
+        <div
+          class="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm px-4 py-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:flex-wrap"
+        >
+          <div class="flex-1 min-w-[200px]">
+            <label
+              for="tl-session-filter"
+              class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
             >
-              <div class="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-600 to-purple-400"></div>
-              <a href=""  @click="$router.push(`users/sessions/${member.user.id}`)">
-              <div class="mb-4">
-                <div
-                  class="w-12 h-12 bg-linear-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg mb-3"
+              Session
+            </label>
+            <select
+              id="tl-session-filter"
+              v-model.number="selectedSessionId"
+              class="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30"
+            >
+              <option v-for="g in sessionGroups" :key="g.session?.id" :value="g.session?.id">
+                {{ g.session?.title || 'Untitled session' }}
+              </option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-[200px]">
+            <label
+              for="tl-assessment-filter"
+              class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
+            >
+              Assessment
+            </label>
+            <select
+              id="tl-assessment-filter"
+              v-model.number="selectedAssessmentId"
+              class="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 disabled:opacity-50"
+              :disabled="assessmentsLoading || !sessionAssessments.length"
+            >
+              <template v-if="!sessionAssessments.length">
+                <option disabled :value="null">
+                  {{ assessmentsLoading ? 'Loading…' : 'No assessments' }}
+                </option>
+              </template>
+              <template v-else>
+                <option v-for="a in sessionAssessments" :key="a.id" :value="a.id">
+                  {{ a.name }}
+                </option>
+              </template>
+            </select>
+          </div>
+          <div class="flex-1 min-w-[200px]">
+            <label
+              for="tl-member-filter"
+              class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5"
+            >
+              Member
+            </label>
+            <select
+              id="tl-member-filter"
+              v-model="selectedMemberFilter"
+              class="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 disabled:opacity-50"
+              :disabled="!currentSessionMembers.length"
+            >
+              <option value="all">All members</option>
+              <option
+                v-for="m in currentSessionMembers"
+                :key="m.id"
+                :value="String(m.users_id)"
+              >
+                {{ m.user?.name || 'Unknown' }}
+              </option>
+            </select>
+          </div>
+          <p
+            v-if="currentSessionGroup?.session"
+            class="text-xs text-gray-500 dark:text-gray-400 sm:ml-auto sm:pb-2.5 w-full sm:w-auto"
+          >
+            {{ formatSessionDate(currentSessionGroup.session.date) }}
+          </p>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead class="bg-gray-50 dark:bg-gray-900/50">
+            <tr>
+              <th
+                scope="col"
+                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+              >
+                Member
+              </th>
+              <th
+                scope="col"
+                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+              >
+                Email
+              </th>
+              <th
+                scope="col"
+                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+              >
+                Role
+              </th>
+              <th
+                scope="col"
+                class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+              >
+                Score
+              </th>
+              <th
+                scope="col"
+                class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+            <tr
+              v-if="filteredTableMembers.length === 0"
+            >
+              <td colspan="5" class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                No members match this filter for the selected session.
+              </td>
+            </tr>
+            <tr
+              v-for="member in filteredTableMembers"
+              :key="`${member.id}`"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+            >
+              <td class="px-4 py-3 whitespace-nowrap">
+                <router-link
+                  :to="`/user-dashboard/users/sessions/${member.user.id}`"
+                  class="inline-flex items-center gap-3 group min-w-0"
                 >
-                  {{ (member.user.name || '?').charAt(0).toUpperCase() }}
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                  {{member.user.name }}
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
-                  {{ member.user.email }}
-                </p>
-                <p class="mt-2">
-                  <span
-                    class="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/40 px-2.5 py-1 text-xs font-semibold text-purple-800 dark:text-purple-200"
+                  <div
+                    class="w-10 h-10 shrink-0 rounded-full bg-linear-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white font-semibold text-sm"
                   >
-                    Role: {{ sessionMemberRoleLabel(member.user.session_member_role) }}
+                    {{ (member.user.name || '?').charAt(0).toUpperCase() }}
+                  </div>
+                  <span
+                    class="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                  >
+                    {{ member.user.name }}
                   </span>
-                </p>
-              </div>
-              </a>
-              <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
+                </router-link>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate" :title="member.user.email">
+                {{ member.user.email }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <span
+                  class="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/40 px-2.5 py-1 text-xs font-semibold text-purple-800 dark:text-purple-200"
+                >
+                  {{ sessionMemberRoleLabel(member.role ?? member.user?.session_member_role) }}
+                </span>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap tabular-nums text-sm text-gray-800 dark:text-gray-200">
+                {{ scoreDisplayForMember(member) }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-right">
                 <button
                   type="button"
-                  @click="downloadCsvReport( member.user)"
+                  @click="downloadCsvReport(member.user)"
                   :disabled="downloading.key === `${member.user.id}`"
-                  class="w-full px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {{ downloading.key === `${member.user.id}` ? 'Downloading…' : 'Download CSV report' }}
+                  {{ downloading.key === `${member.user.id}` ? 'Downloading…' : 'Download CSV' }}
                 </button>
-              </div>
-            </div>
-          </div>
-        <!-- </section> -->
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
       </div>
     </div>
   </main>

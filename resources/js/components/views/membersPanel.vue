@@ -17,6 +17,7 @@ const selectedUsers = ref([])
 const initialSelectedUsers = ref([])
 const sessionId = props.sessionId
 const searchTerm = ref('')
+const showUserSuggestions = ref(false)
 const loading = ref(false)
 const error = ref(false)
 
@@ -47,9 +48,13 @@ const fetchSelectedUsers = async () => {
 
 const openModal = () => {
     showModal.value = true
+    searchTerm.value = ''
+    showUserSuggestions.value = false
 }
 const closeModal = () => {
     showModal.value = false
+    searchTerm.value = ''
+    showUserSuggestions.value = false
 }
 const isUserSelected = (user) => selectedUsers.value.some((item) => item.id === user.id)
 const addSelectedUser = (user) => {
@@ -79,6 +84,7 @@ const filteredUsers = computed(() => {
     const keywords = term.split(/[\s,]+/).filter(Boolean)
 
     return (props.users || []).filter(user => {
+        if (isUserSelected(user)) return false
         const name = user.name?.toLowerCase() || ''
         const email = user.email?.toLowerCase() || ''
 
@@ -88,6 +94,93 @@ const filteredUsers = computed(() => {
         )
     })
 })
+
+const removeSelectedUserFromDraft = (userId) => {
+    selectedUsers.value = selectedUsers.value.filter((item) => item.id !== userId)
+}
+
+const findUserByToken = (token) => {
+    const q = token.trim().toLowerCase()
+    if (!q) return null
+
+    const available = (props.users || []).filter((u) => !isUserSelected(u))
+    return (
+        available.find((u) => (u?.email || '').toLowerCase() === q) ||
+        available.find((u) => (u?.name || '').toLowerCase() === q) ||
+        available.find((u) => (u?.email || '').toLowerCase().startsWith(q)) ||
+        available.find((u) => (u?.name || '').toLowerCase().startsWith(q)) ||
+        available.find((u) => (u?.name || '').toLowerCase().includes(q) || (u?.email || '').toLowerCase().includes(q))
+    )
+}
+
+const addFromSearch = () => {
+    const token = searchTerm.value.trim()
+    if (!token) return
+    const match = findUserByToken(token) || filteredUsers.value[0]
+    if (match) {
+        addSelectedUser(match)
+        searchTerm.value = ''
+        showUserSuggestions.value = false
+    }
+}
+
+const handleSearchKeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+        e.preventDefault()
+        addFromSearch()
+    }
+}
+
+const handleSearchBlur = () => {
+    window.setTimeout(() => {
+        showUserSuggestions.value = false
+    }, 120)
+}
+
+const handleSearchPaste = (e) => {
+    const pasted = e.clipboardData?.getData('text') || ''
+    if (!pasted.trim()) return
+    e.preventDefault()
+    showUserSuggestions.value = false
+
+    // Support common paste formats:
+    // - comma/newline separated
+    // - "Name <email@x.com>"
+    // - plain emails inside larger text
+    const emailMatches = pasted.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []
+    const chunks = pasted
+        .split(/[\n,;\t]+/)
+        .map((t) => t.trim())
+        .filter(Boolean)
+
+    const normalizedTokens = [
+        ...emailMatches,
+        ...chunks.map((chunk) => {
+            const angleMatch = chunk.match(/<([^>]+)>/)
+            const core = angleMatch?.[1] || chunk
+            return core.replace(/^["'\s]+|["'\s]+$/g, '').trim()
+        })
+    ].filter(Boolean)
+
+    const tokens = [...new Set(normalizedTokens)]
+    const unmatched = []
+    let matchedCount = 0
+    for (const token of tokens) {
+        const match = findUserByToken(token)
+        if (match) {
+            addSelectedUser(match)
+            matchedCount += 1
+        }
+        else unmatched.push(token)
+    }
+
+   
+
+    // If at least one member was matched, clear pasted text from input.
+    // Keep text only when nothing got populated as chips.
+    searchTerm.value = matchedCount > 0 ? '' : unmatched.join(', ')
+    showUserSuggestions.value = false
+}
 
 const submitForm = async () => {
     if (selectedUsers.value.length === 0) {
@@ -219,87 +312,72 @@ onMounted(() => {
 
                 <!-- Modal Body -->
                 <div class="px-6 py-6 space-y-6">
-                    <!-- Search Input -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
                             Search Members
                         </label>
                         <div class="relative">
-                            <input v-model="searchTerm" type="text" placeholder="Search by name or email..."
-                                class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                                :disabled="submitting" />
-                            <svg class="absolute right-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
+                            <div
+                                class="w-full min-h-[48px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent transition-all flex flex-wrap items-center gap-2"
+                            >
+                                <span
+                                    v-for="user in selectedUsers"
+                                    :key="user.id"
+                                    class="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 px-2.5 py-1 text-xs font-medium"
+                                >
+                                    <span class="truncate max-w-[180px]">{{ user.name }}</span>
+                                    <button
+                                        type="button"
+                                        @click="removeSelectedUserFromDraft(user.id)"
+                                        class="rounded-full hover:bg-purple-200/70 dark:hover:bg-purple-800/60 p-0.5"
+                                        :disabled="submitting"
+                                    >
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </span>
 
-                    <!-- Selected Members -->
-                    <div v-if="selectedUsers.length > 0">
-                        <label class="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                            Selected Members ({{ selectedUsers.length }})
-                        </label>
-                        <div class="space-y-2">
-                            <div v-for="user in selectedUsers" :key="user.id"
-                                class="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                                <div>
-                                    <p class="font-medium text-gray-900 dark:text-gray-100">{{ user.name }}</p>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ user.email }}</p>
-                                    <p class="mt-1.5">
-                                        <span class="inline-flex items-center rounded-full bg-gray-200/80 dark:bg-gray-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                                            Role: {{ roleLabelForMember(user) }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <button type="button" @click="removeSelectedUser(user.id)"
-                                    class="p-1 hover:bg-purple-200 dark:hover:bg-purple-900 rounded-lg transition-colors text-purple-600 dark:text-purple-400">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
+                                <input
+                                    v-model="searchTerm"
+                                    type="text"
+                                    placeholder="Type name/email, press Enter (or paste many)"
+                                    class="flex-1 min-w-[180px] bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
+                                    :disabled="submitting"
+                                    @focus="showUserSuggestions = true"
+                                    @blur="handleSearchBlur"
+                                    @keydown="handleSearchKeydown"
+                                    @paste="handleSearchPaste"
+                                />
+                            </div>
+
+                            <!-- Suggestion tooltip -->
+                            <div
+                                v-if="showUserSuggestions && searchTerm.trim()"
+                                class="absolute z-20 mt-2 w-full max-h-56 overflow-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg"
+                            >
+                                <button
+                                    v-for="user in filteredUsers"
+                                    :key="user.id"
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                    @mousedown.prevent
+                                    @click="addSelectedUser(user); searchTerm=''; showUserSuggestions=true"
+                                >
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.email }}</p>
                                 </button>
+                                <p
+                                    v-if="filteredUsers.length === 0"
+                                    class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400"
+                                >
+                                    No users match your search.
+                                </p>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- User List -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                            Available Members
-                        </label>
-                        <div class="space-y-2 max-h-64 overflow-y-auto">
-                            <button v-for="user in filteredUsers" :key="user.id" type="button"
-                                @click="addSelectedUser(user)" :disabled="isUserSelected(user)" :class="[
-                                    'w-full rounded-lg px-4 py-3 text-left text-sm transition-all duration-200',
-                                    isUserSelected(user)
-                                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 cursor-not-allowed border border-gray-300 dark:border-gray-600'
-                                        : 'bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600'
-                                ]">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="font-medium">{{ user.name }}</p>
-                                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ user.email }}</p>
-                                        <p v-if="userAccountRoleLabel(user)" class="mt-1">
-                                            <span class="inline-flex rounded-full bg-gray-200/80 dark:bg-gray-600 px-2 py-0.5 text-[10px] font-semibold text-gray-700 dark:text-gray-200">
-                                                Role: {{ userAccountRoleLabel(user) }}
-                                            </span>
-                                        </p>
-                                    </div>
-                                    <div v-if="isUserSelected(user)" class="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
-                                        <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </button>
-                            <p v-if="searchTerm && filteredUsers.length === 0"
-                                class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No users match your search.
-                            </p>
-                            <p v-else-if="!searchTerm && filteredUsers.length === 0"
-                                class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                                Start typing to search for members.
-                            </p>
-                        </div>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            Tip: paste multiple names/emails separated by comma or new line.
+                        </p>
                     </div>
                 </div>
 

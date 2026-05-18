@@ -1,7 +1,7 @@
 <script setup>
 import api from '../../services/axios.js'
-import { ref, onMounted, watch, nextTick } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import flatpickr from 'flatpickr'
 import 'flatpickr/dist/flatpickr.min.css'
 
@@ -14,16 +14,12 @@ const formError = ref('')
 const route = useRoute()
 const isEditMode = ref(false)
 const editingAssessmentId = ref(null)
+const user_role = route.path.startsWith('/user-dashboard/tl-session-detail/') ? 'tl' : 'user'
+
 
 // Upload progress tracking
 const uploadProgress = ref(0)
 const isUploading = ref(false)
-
-// Flatpickr refs
-const startDateInput = ref(null)
-const endDateInput = ref(null)
-let startPicker = null
-let endPicker = null
 
 const props = defineProps({
   assessments: Array,
@@ -33,7 +29,7 @@ const props = defineProps({
   activePanel: String,
   sessionDetails: Object
 })
- const startDate =  props.sessionDetails?.date
+const sessionStartDate = computed(() => props.sessionDetails?.date)
 
 
 const emit = defineEmits('fetchAssessments')
@@ -53,52 +49,96 @@ const formData = ref({
   supporting_files: null
 })
 
-// Initialize Flatpickr pickers inside the modal
-const initPickers = () => {
-  nextTick(() => {
-    if (startDateInput.value) {
-      startPicker = flatpickr(startDateInput.value, {
-        enableTime: false,
-        dateFormat: 'Y-m-d',
-        allowInput: false,
-        disableMobile: true,
-        minDate: startDate,
-        onChange: (selectedDates, dateStr) => {
-          formData.value.start_date_time = dateStr
-          // Update end picker's minDate to start date
-          if (endPicker) {
-            endPicker.set('minDate', dateStr)
-          }
-        }
-      })
-      // Set existing value if edit mode
-      if (formData.value.start_date_time) {
-        startPicker.setDate(formData.value.start_date_time)
-      }
-    }
+const dateRangeInput = ref(null)
+const datePickerWrap = ref(null)
+let rangePicker = null
 
-    if (endDateInput.value) {
-      endPicker = flatpickr(endDateInput.value, {
-        enableTime: false,
-        dateFormat: 'Y-m-d',
-        allowInput: false,
-        disableMobile: true,
-        minDate: formData.value.start_date_time || 'today',
-        onChange: (selectedDates, dateStr) => {
-          formData.value.end_date_time = dateStr
-        }
-      })
-      // Set existing value if edit mode
-      if (formData.value.end_date_time) {
-        endPicker.setDate(formData.value.end_date_time)
-      }
-    }
-  })
+const normalizeDateString = (dateStr) => {
+  if (!dateStr) return ''
+  const str = String(dateStr).trim()
+  if (str.includes('T')) return str.split('T')[0]
+  if (str.includes(' ')) return str.split(' ')[0]
+  return str.slice(0, 10)
 }
 
-const destroyPickers = () => {
-  if (startPicker) { startPicker.destroy(); startPicker = null }
-  if (endPicker) { endPicker.destroy(); endPicker = null }
+const parsePickerDate = (dateStr) => {
+  const normalized = normalizeDateString(dateStr)
+  if (!normalized) return null
+  const parsed = new Date(`${normalized}T12:00:00`)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const toFormDateString = (date) => {
+  if (!date || !(date instanceof Date) || Number.isNaN(date.getTime())) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getDefaultPickerDates = () => {
+  const start = parsePickerDate(formData.value.start_date_time)
+  const end = parsePickerDate(formData.value.end_date_time)
+  if (start && end) return [start, end]
+  if (start) return [start]
+  return null
+}
+
+const minPickerDate = computed(() => {
+  const sessionDate = parsePickerDate(sessionStartDate.value)
+  const assessmentStart = parsePickerDate(formData.value.start_date_time)
+
+  if (sessionDate && assessmentStart) {
+    return assessmentStart < sessionDate ? assessmentStart : sessionDate
+  }
+  if (sessionDate) return sessionDate
+  if (isEditMode.value && assessmentStart) return assessmentStart
+  return 'today'
+})
+
+const destroyDatePicker = () => {
+  if (rangePicker) {
+    rangePicker.destroy()
+    rangePicker = null
+  }
+}
+
+const initDatePicker = () => {
+  // Double nextTick: modal is teleported + v-if, DOM may not be ready after one tick
+  nextTick(() => {
+    nextTick(() => {
+    if (!dateRangeInput.value) return
+
+    destroyDatePicker()
+
+    const defaultDates = getDefaultPickerDates()
+
+    rangePicker = flatpickr(dateRangeInput.value, {
+      mode: 'range',
+      enableTime: false,
+      dateFormat: 'Y-m-d',
+      allowInput: false,
+      clickOpens: true,
+      disableMobile: true,
+      static: true,
+      minDate: minPickerDate.value,
+      defaultDate: defaultDates ?? undefined,
+      appendTo: datePickerWrap.value || undefined,
+      onChange: (selectedDates) => {
+        formData.value.start_date_time = selectedDates[0]
+          ? toFormDateString(selectedDates[0])
+          : ''
+        formData.value.end_date_time = selectedDates[1]
+          ? toFormDateString(selectedDates[1])
+          : ''
+      },
+    })
+
+    if (defaultDates) {
+      rangePicker.setDate(defaultDates, false)
+    }
+    })
+  })
 }
 
 const openAssessmentModal = () => {
@@ -106,7 +146,7 @@ const openAssessmentModal = () => {
   editingAssessmentId.value = null
   formData.value = { name: '', description: '', start_date_time: '', end_date_time: '', supporting_files: null }
   showModal.value = true
-  nextTick(() => initPickers())
+  initDatePicker()
 }
 
 const openEditAssessmentModal = (assessment) => {
@@ -115,16 +155,16 @@ const openEditAssessmentModal = (assessment) => {
   formData.value = {
     name: assessment.name ?? '',
     description: assessment.description ?? '',
-    start_date_time: assessment.start_date_time ? assessment.start_date_time.split('T')[0] : '',
-    end_date_time: assessment.end_date_time ? assessment.end_date_time.split('T')[0] : '',
+    start_date_time: normalizeDateString(assessment.start_date_time),
+    end_date_time: normalizeDateString(assessment.end_date_time),
     supporting_files: assessment.supporting_files ?? null
   }
   showModal.value = true
-  nextTick(() => initPickers())
+  initDatePicker()
 }
 
 const closeModal = () => {
-  destroyPickers()
+  destroyDatePicker()
   showModal.value = false
   formError.value = ''
   isEditMode.value = false
@@ -132,10 +172,10 @@ const closeModal = () => {
 }
 
 const openProjectUploadsModal = (assessment) => {
-  if (assessment.end_date_time < new Date().toISOString()) {
-    alert('Cannot upload files for an assessment that has already ended.')
-    return
-  }
+//   if (assessment.end_date_time < new Date().toISOString()) {
+//     alert('Cannot upload files for an assessment that has already ended.')
+//     return
+//   }
   showModalForProjectUploads.value = true
   formDataOfUploads.value.assessment_id = assessment.id
 }
@@ -216,7 +256,7 @@ const submitFormOfUploads = async () => {
 
   // PHP on many servers rejects uploads above upload_max_filesize (often 2MB by default).
   // If that happens, Laravel won't receive the file at all and will return "file_path required".
-  const maxBytes = 2 * 1024 * 1024 // 2MB
+  const maxBytes = 30 * 1024 * 1024 // 2MB
   if (formDataOfUploads.value.file_path.size > maxBytes) {
     alert('Selected ZIP is larger than 2MB. Please upload a smaller file or increase server upload limits (upload_max_filesize/post_max_size).')
     return
@@ -267,6 +307,7 @@ const requestExtension = async (assessmentId, eventId) => {
       user_id: user_id
     })
     alert('Extension request submitted successfully')
+    emit('fetchAssessments')
   } catch (err) {
     alert('Failed to submit extension request')
   }
@@ -295,27 +336,73 @@ const deleteAssessment = async (assessmentId) => {
               }
             }
 
-const hasUserSubmitted = (assessment) => {
-  const user = localStorage.getItem('user')
-  const userId = user ? JSON.parse(user).id : null
+const userSubmissionsByAssessment = computed(() => {
+  const map = new Map()
+  const list = Array.isArray(props.assessments) ? props.assessments : []
 
-  // Step 1: find the logged-in user
-  const member = assessment?.session?.session_members?.find(
-    m => m.users_id === userId
-  )
+  for (const assessment of list) {
+    const member = assessment?.session?.session_members?.find(
+      (m) => Number(m?.users_id) === Number(user_id)
+    )
+    const uploads = Array.isArray(member?.project_uploads) ? member.project_uploads : []
 
-  if (!member || !member.project_uploads?.length) {
-    return false
+    const candidates = uploads
+      .filter((upload) => Number(upload?.events_assessments_id) === Number(assessment?.id))
+      .sort((a, b) => {
+        const aTime = new Date(a?.created_at || 0).getTime()
+        const bTime = new Date(b?.created_at || 0).getTime()
+        if (bTime !== aTime) return bTime - aTime
+        return Number(b?.id || 0) - Number(a?.id || 0)
+      })
+
+    map.set(assessment.id, candidates[0] || null)
   }
+  console.log('User submissions by assessment:', map)
 
-  // Step 2: check if submission exists for this assessment
-  const submission = member.project_uploads.find(
-    upload => upload.events_assessments_id === assessment.id
-  )
-  console.log("submission",submission);
+  return map
+})
 
-  return submission
+const hasUserSubmitted = (assessmentId) => {
+  return userSubmissionsByAssessment.value.get(assessmentId) || null
 }
+
+const checkIfUserCanUpload = (assessment) => {
+    console.log('Checking if user can upload for assessment:', assessment.name)
+    const endDate = new Date(assessment.end_date_time)
+    const now = new Date()
+    if (now > endDate) {
+        const user = JSON.parse(localStorage.getItem('user'))
+
+        const sessionMember = assessment.session.session_members.find(
+            member => member.users_id === user.id
+        )
+
+        if (!sessionMember) return false
+
+        const hasRequestedReopen = assessment.reopen_requests.some(
+            request => request.events_users_id === sessionMember.id && request.status === 1
+        )
+        console.log('User has requested reopen:', hasRequestedReopen)
+        return hasRequestedReopen
+    }
+
+
+}
+const hasRequestedExtension = (assessment) => {
+    const user = JSON.parse(localStorage.getItem('user'))
+
+    const sessionMember = assessment.session.session_members.find(
+        member => member.users_id === user.id
+    )
+
+    if (!sessionMember) return false
+
+    const hasRequestedReopen = assessment.reopen_requests.some(
+        request => request.events_users_id === sessionMember.id && request.status === 0
+    )
+    return hasRequestedReopen
+}
+
 </script>
 
 <template>
@@ -406,9 +493,9 @@ const hasUserSubmitted = (assessment) => {
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Due Date</p>
               <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatDate(assessment.end_date_time) }}</p>
             </div>
-            <div v-if="hasUserSubmitted(assessment)">
+            <div v-if="hasUserSubmitted(assessment.id)">
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Score</p>
-              <p class="text-sm font-medium text-gray-900 dark:text-white"> {{ hasUserSubmitted(assessment)?.score ?? 'N/A' }}</p>
+              <p class="text-sm font-medium text-gray-900 dark:text-white"> {{ hasUserSubmitted(assessment.id)?.score ?? 'N/A' }}</p>
             </div>
           </div>
             <div class="flex gap-3">
@@ -427,25 +514,47 @@ const hasUserSubmitted = (assessment) => {
                 </button>
               </div>
             <div v-else class="w-full space-y-3">
-                <div  v-if=" hasUserSubmitted(assessment)?.score == null" class="space-y-3">
-                    <button  @click="openProjectUploadsModal(assessment)" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
+                <div
+                    v-if="
+                        user_role != 'tl' &&
+                        hasUserSubmitted(assessment.id)?.score == null
+                    "
+                    class="space-y-3"
+                    >
+                    <!-- Upload button -->
+                    <button
+                        v-if="checkIfUserCanUpload(assessment)"
+                        @click="openProjectUploadsModal(assessment)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 text-sm"
+                    >
                         Upload
                     </button>
-                    <button v-if="isOverdue(assessment.end_date_time)" @click="requestExtension(assessment.id, assessment.events_id)" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-all duration-200 text-sm border border-orange-200 dark:border-orange-800">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+
+                    <!-- Already requested -->
+                    <button
+                        v-if="isOverdue(assessment.end_date_time) && hasRequestedExtension(assessment)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-all duration-200 text-sm border border-orange-200 dark:border-orange-800"
+                    >
+                        Already Requested
+                    </button>
+
+                    <!-- Request extension -->
+                    <button
+                        v-else-if="isOverdue(assessment.end_date_time) && !hasRequestedExtension(assessment)"
+                        @click="requestExtension(assessment.id, assessment.events_id)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-all duration-200 text-sm border border-orange-200 dark:border-orange-800"
+                    >
                         Request Extension
                     </button>
-                </div>
-                <div v-else>
-                    <button   class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 text-sm">
+                    </div>
+
+                    <div v-else-if="hasUserSubmitted(assessment.id)?.score != null">
+                    <button
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg text-sm"
+                    >
                         Already Submitted
                     </button>
-                </div>
+                    </div>
             </div>
 
           </div>
@@ -463,7 +572,7 @@ const hasUserSubmitted = (assessment) => {
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeModal"></div>
 
         <!-- Dialog -->
-        <div class="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+        <div class="relative z-10 w-full max-w-3xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700">
 
           <!-- Header -->
           <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5">
@@ -507,46 +616,29 @@ const hasUserSubmitted = (assessment) => {
             </div>
 
             <!-- Date Range -->
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Start Date -->
-              <div>
-                <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-1.5">
-                  Start Date <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <input
-                    ref="startDateInput"
-                    type="text"
-                    placeholder="Select start date"
-                    readonly
-                    class="w-full pl-4 pr-9 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm cursor-pointer"
-                    :disabled="submitting || isEditMode"
-                  />
-                  <svg class="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
+            <div class="assessment-date-picker-section">
+              <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-1.5">
+                Assessment Date Range <span class="text-red-500">*</span>
+              </label>
+              <div ref="datePickerWrap" class="assessment-flatpickr-wrap">
+                <input
+                  ref="dateRangeInput"
+                  type="text"
+                  placeholder="Select start and end date"
+                  readonly
+                  class="w-full px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm cursor-pointer"
+                  :disabled="submitting"
+                />
               </div>
-
-              <!-- End Date -->
-              <div>
-                <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-1.5">
-                  End Date <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <input
-                    ref="endDateInput"
-                    type="text"
-                    placeholder="Select end date"
-                    readonly
-                    class="w-full pl-4 pr-9 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm cursor-pointer"
-                    :disabled="submitting"
-                  />
-                  <svg class="absolute right-3 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
+              <p
+                v-if="formData.start_date_time && formData.end_date_time"
+                class="mt-2 text-sm font-medium text-purple-700 dark:text-purple-300"
+              >
+                Selected: {{ formData.start_date_time }} – {{ formData.end_date_time }}
+              </p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Click a start date, then an end date on the calendar.
+              </p>
             </div>
 
             <!-- File Upload -->
@@ -679,105 +771,106 @@ const hasUserSubmitted = (assessment) => {
 
 input:focus, textarea:focus { outline: none; }
 
-/* ── Flatpickr custom theme (purple) ── */
-:deep(.flatpickr-calendar) {
-  background: #ffffff;
+/* ── Flatpickr range picker (purple) ── */
+.assessment-date-picker-section {
+  overflow: visible;
+}
+
+.assessment-flatpickr-wrap {
+  position: relative;
+}
+
+.assessment-flatpickr-wrap :deep(.flatpickr-calendar) {
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: 100%;
+  margin-top: 0.75rem;
+  box-shadow: none;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
   padding: 8px;
   font-family: inherit;
 }
-:deep(.flatpickr-months) {
-  padding: 4px 0;
-}
-:deep(.flatpickr-months .flatpickr-month) {
+
+.assessment-flatpickr-wrap :deep(.flatpickr-months .flatpickr-month) {
   background: transparent;
   color: #111827;
-  height: 36px;
 }
-:deep(.flatpickr-current-month) {
+
+.assessment-flatpickr-wrap :deep(.flatpickr-current-month) {
   font-size: 0.95rem;
   font-weight: 700;
   color: #111827;
 }
-:deep(.flatpickr-current-month .numInputWrapper input) {
-  color: #111827;
-}
-:deep(.flatpickr-monthDropdown-months) {
-  background: #ffffff;
-  color: #111827;
-}
-:deep(.flatpickr-prev-month svg),
-:deep(.flatpickr-next-month svg) {
-  fill: #6b7280;
-}
-:deep(.flatpickr-prev-month:hover svg),
-:deep(.flatpickr-next-month:hover svg) {
-  fill: #7c3aed;
-}
-:deep(.flatpickr-weekdays) {
-  background: transparent;
-  margin-top: 4px;
-}
-:deep(span.flatpickr-weekday) {
+
+.assessment-flatpickr-wrap :deep(span.flatpickr-weekday) {
   color: #9ca3af;
   font-size: 0.75rem;
   font-weight: 600;
 }
-:deep(.flatpickr-day) {
+
+.assessment-flatpickr-wrap :deep(.flatpickr-day) {
   color: #374151;
   border-radius: 10px;
-  font-size: 0.85rem;
-  height: 36px;
-  line-height: 36px;
+  max-width: 38px;
+  height: 38px;
+  line-height: 38px;
 }
-:deep(.flatpickr-day:hover) {
+
+.assessment-flatpickr-wrap :deep(.flatpickr-day:hover) {
   background: #f3e8ff;
   border-color: transparent;
   color: #7c3aed;
 }
-:deep(.flatpickr-day.today) {
+
+.assessment-flatpickr-wrap :deep(.flatpickr-day.today) {
   border-color: #7c3aed;
   color: #7c3aed;
   font-weight: 700;
 }
-:deep(.flatpickr-day.selected),
-:deep(.flatpickr-day.selected:hover) {
+
+.assessment-flatpickr-wrap :deep(.flatpickr-day.selected),
+.assessment-flatpickr-wrap :deep(.flatpickr-day.startRange),
+.assessment-flatpickr-wrap :deep(.flatpickr-day.endRange),
+.assessment-flatpickr-wrap :deep(.flatpickr-day.selected:hover),
+.assessment-flatpickr-wrap :deep(.flatpickr-day.startRange:hover),
+.assessment-flatpickr-wrap :deep(.flatpickr-day.endRange:hover) {
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
   border-color: transparent;
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(124,58,237,0.35);
-}
-:deep(.flatpickr-day.flatpickr-disabled) {
-  color: #d1d5db;
 }
 
-/* Dark mode overrides */
-.dark :deep(.flatpickr-calendar) {
+.assessment-flatpickr-wrap :deep(.flatpickr-day.inRange) {
+  background: #ede9fe;
+  border-color: transparent;
+  color: #5b21b6;
+  box-shadow: none;
+}
+
+.dark .assessment-flatpickr-wrap :deep(.flatpickr-calendar) {
   background: #1e293b;
   border-color: #334155;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
-.dark :deep(.flatpickr-months .flatpickr-month),
-.dark :deep(.flatpickr-current-month),
-.dark :deep(.flatpickr-current-month .numInputWrapper input) {
+
+.dark .assessment-flatpickr-wrap :deep(.flatpickr-months .flatpickr-month),
+.dark .assessment-flatpickr-wrap :deep(.flatpickr-current-month) {
   color: #f1f5f9;
 }
-.dark :deep(.flatpickr-monthDropdown-months) {
-  background: #1e293b;
-  color: #f1f5f9;
+
+.dark .assessment-flatpickr-wrap :deep(.flatpickr-day) {
+  color: #cbd5e1;
 }
-.dark :deep(span.flatpickr-weekday) { color: #64748b; }
-.dark :deep(.flatpickr-day) { color: #cbd5e1; }
-.dark :deep(.flatpickr-day:hover) {
+
+.dark .assessment-flatpickr-wrap :deep(.flatpickr-day:hover) {
   background: #312e81;
   color: #e0e7ff;
 }
-.dark :deep(.flatpickr-day.today) {
-  border-color: #a78bfa;
-  color: #a78bfa;
+
+.dark .assessment-flatpickr-wrap :deep(.flatpickr-day.inRange) {
+  background: #3730a3;
+  color: #e0e7ff;
 }
-.dark :deep(.flatpickr-day.flatpickr-disabled) { color: #475569; }
 </style>

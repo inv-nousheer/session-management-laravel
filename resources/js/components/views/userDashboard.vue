@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Pie } from 'vue-chartjs'
 import {
@@ -8,6 +8,13 @@ import {
   ArcElement, BarElement, CategoryScale, LinearScale
 } from 'chart.js'
 import { onMounted } from 'vue'
+
+const props = defineProps({
+  allData: {
+    type: Boolean,
+    default: false
+  }
+})
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement)
 const dashboardDetails = ref({
@@ -24,9 +31,13 @@ const currentUserId = JSON.parse(localStorage.getItem('user') || 'null')?.id ?? 
 
 const dashboardData = async () => {
   try {
-    if (!currentUserId) throw new Error('Missing current user id')
+    const endpoint = props.allData
+      ? '/api/dashboard-data'
+      : `/api/dashboard-data?user_id=${encodeURIComponent(currentUserId)}`
 
-    const response = await fetch(`/api/dashboard-data?user_id=${encodeURIComponent(currentUserId)}`)
+    if (!props.allData && !currentUserId) throw new Error('Missing current user id')
+
+    const response = await fetch(endpoint)
     if (!response.ok) throw new Error('Failed to fetch dashboard data')
 
     const data = await response.json()

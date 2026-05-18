@@ -4,13 +4,15 @@ import api from '../../services/axios.js'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const user_id = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null
+const user_id = route.path.startsWith('/user-dashboard/tl-session-detail/') ? route.params.user_id : localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null
 const sessionId = computed(() => route.params.id)
 const loading = ref(false)
 const error = ref(false)
 const assessments = ref([])
 const replies = ref({})
 const selectedFeedback = ref(null)
+const user_role = route.path.startsWith('/user-dashboard/tl-session-detail/') ? 'tl' : 'user'
+
 
 
 const fetchUserAssessments = async () => {
@@ -358,11 +360,11 @@ onMounted(async () => {
 
             <template v-else>
               <div v-for="comment in selectedFeedbackComments" :key="comment.id">
-                <div :class="['flex w-full', isStudentComment(comment) ? 'justify-start' : 'justify-end']">
+                <div :class="['flex w-full', isStudentComment(comment) ? 'justify-end' : 'justify-start']">
                   <div
                     :class="[
                       'max-w-[95%] flex gap-2 items-start',
-                      isStudentComment(comment) ? 'mr-auto' : 'ml-auto flex-row-reverse'
+                      isStudentComment(comment) ? 'ml-auto flex-row-reverse' : 'mr-auto'
                     ]"
                   >
                     <div
@@ -463,7 +465,7 @@ onMounted(async () => {
             v-if="instructorComment"
             class="px-5 py-3 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/40 shrink-0"
           >
-            <div class="flex gap-2 items-end">
+            <div v-if="user_role !='tl'" class="flex gap-2 items-end">
               <textarea
                 v-model="replies[selectedFeedback.assessment?.id]"
                 placeholder="Reply to instructor feedback…"

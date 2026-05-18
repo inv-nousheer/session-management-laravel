@@ -535,6 +535,14 @@ const getMySessions = () => {
   return sessions.value.filter(session => session.created_by === userId)
 }
 console.log('getMySessions',getMySessions());
+const goToSessionDetail = (sessionId) => {
+  if(route.path.startsWith('/user-dashboard/users/sessions')){
+    const user_id = route.params.id
+    router.push(`/user-dashboard/tl-session-detail/${sessionId}/${user_id}`)
+  }else{
+    router.push(`/user-dashboard/session-detail/${sessionId}`)
+  }
+}
 </script>
 <template>
 <main class="h-full overflow-y-auto">
@@ -736,7 +744,7 @@ console.log('getMySessions',getMySessions());
                         </button>
                         <button
                             v-else
-                            @click="$router.push(`/user-dashboard/session-detail/${session.id}`)"
+                            @click="goToSessionDetail(session.id)"
                             class="flex-1 px-4 py-2.5 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900 dark:text-purple-300 dark:hover:bg-purple-800 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                         >
                             View

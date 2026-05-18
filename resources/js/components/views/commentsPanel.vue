@@ -161,11 +161,6 @@ const uploadForComment = (comment) => {
     return selectedMemberUploadsById.value.get(uploadId) || null
 }
 
-const isLatestUploadComment = (comment) => {
-    const upload = uploadForComment(comment)
-    return Boolean(upload?.id && activeUploadForReply.value?.id && Number(upload.id) === Number(activeUploadForReply.value.id))
-}
-
 const isSavingScore = (uploadId) => savingScoreUploadId.value === uploadId
 const isScoreSaved = (uploadId) => Boolean(scoreSuccessUploads.value[uploadId])
 
@@ -174,6 +169,14 @@ const activeUploadForReply = computed(() => {
     if (!uploads.length) return null
     return uploads[uploads.length - 1]
 })
+
+watch(activeUploadForReply, (upload) => {
+    if (!upload?.id) return
+    const cur = scoreInputs.value[upload.id]
+    if (cur === undefined || cur === null || cur === '') {
+        scoreInputs.value[upload.id] = upload.score ?? ''
+    }
+}, { immediate: true })
 
 const instructorComment = computed(() => {
     const list = selectedMemberComments.value
@@ -342,6 +345,36 @@ watch(() => props.assessments, (newAssessments) => {
                   </span>
                 </div>
 
+                <!-- Score applies to the latest uploaded file for this assessment -->
+                <div
+                  v-if="activeUploadForReply"
+                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800/80 flex flex-wrap items-center gap-2 shrink-0"
+                >
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Score (latest file)</span>
+                  <span class="text-xs text-gray-400 truncate max-w-[min(100%,12rem)]" :title="getFileName(activeUploadForReply.file_path)">
+                    {{ getFileName(activeUploadForReply.file_path) }}
+                  </span>
+                  <div class="ml-auto flex items-center gap-2">
+                    <input
+                      v-model="scoreInputs[activeUploadForReply.id]"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="0–100"
+                      class="w-24 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                      :disabled="isSavingScore(activeUploadForReply.id)"
+                      @blur="updateScore(activeUploadForReply.id)"
+                      @keydown="handleScoreKeydown($event, activeUploadForReply.id)"
+                    />
+                    <span
+                      v-if="isScoreSaved(activeUploadForReply.id)"
+                      class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                      Saved
+                    </span>
+                  </div>
+                </div>
+
                 <!-- Thread -->
                 <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
                   <template v-if="selectedMemberComments.length > 0">
@@ -400,25 +433,6 @@ watch(() => props.assessments, (newAssessments) => {
                                   </svg>
                                   Download
                                 </button>
-                                <template v-if="isLatestUploadComment(comment)">
-                                  <input
-                                    v-model="scoreInputs[uploadForComment(comment).id]"
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    placeholder="Score"
-                                    class="w-20 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                                    :disabled="isSavingScore(uploadForComment(comment).id)"
-                                    @blur="updateScore(uploadForComment(comment).id)"
-                                    @keydown="handleScoreKeydown($event, uploadForComment(comment).id)"
-                                  />
-                                  <span
-                                    v-if="isScoreSaved(uploadForComment(comment).id)"
-                                    class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                                  >
-                                    Saved
-                                  </span>
-                                </template>
                               </div>
                             </div>
 
@@ -483,25 +497,6 @@ watch(() => props.assessments, (newAssessments) => {
                                         </svg>
                                         Download
                                       </button>
-                                      <template v-if="isLatestUploadComment(reply)">
-                                        <input
-                                          v-model="scoreInputs[uploadForComment(reply).id]"
-                                          type="number"
-                                          min="0"
-                                          max="100"
-                                          placeholder="Score"
-                                          class="w-20 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                                          :disabled="isSavingScore(uploadForComment(reply).id)"
-                                          @blur="updateScore(uploadForComment(reply).id)"
-                                          @keydown="handleScoreKeydown($event, uploadForComment(reply).id)"
-                                        />
-                                        <span
-                                          v-if="isScoreSaved(uploadForComment(reply).id)"
-                                          class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                                        >
-                                          Saved
-                                        </span>
-                                      </template>
                                     </div>
                                   </div>
                                 </div>

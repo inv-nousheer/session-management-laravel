@@ -111,6 +111,7 @@ class SessionController extends Controller
     /**
      * GET /api/sessions/user/{user_id}/as-team-lead/members
      * Sessions where the user is a team lead (events_users.role = 2), each with all session members (user included).
+     * JSON: [ { "session": { id, title, description, date }, "members": [ ... ] }, ... ]
      */
     public function teamLeadMemberLists($user_id)
     {
@@ -139,16 +140,56 @@ class SessionController extends Controller
             $members = $session->sessionMembers()
                 ->with('user')
                 ->orderBy('id')
-                ->distinct()
                 ->get();
-                array_push($payload,$members);
+            $payload[] = [
+                'session' => [
+                    'id' => $session->id,
+                    'title' => $session->title,
+                    'description' => $session->description,
+                    'date' => $session->date,
+                ],
+                'members' => $members,
+            ];
         }
-        $uniqueMembers = collect($payload)
-        ->flatten(1)
-        ->unique('users_id')
-        ->values();
 
-        return response()->json($uniqueMembers);
+        return response()->json($payload);
+    }
+
+    /**
+     * GET /api/sessions/{sessionId}/assessments/{assessmentId}/member-scores
+     * Latest project-upload score per session member (pivot id) for the given assessment.
+     */
+    public function assessmentMemberScores($sessionId, $assessmentId)
+    {
+        $session = Session::findOrFail((int) $sessionId);
+        $assessment = Assessment::query()
+            ->where('id', (int) $assessmentId)
+            ->where('events_id', $session->id)
+            ->firstOrFail();
+
+        $pivotIds = SessionMember::query()
+            ->where('events_id', $session->id)
+            ->pluck('id');
+
+        if ($pivotIds->isEmpty()) {
+            return response()->json(['scores' => new \stdClass()]);
+        }
+
+        $uploads = ProjectUpload::query()
+            ->where('events_assessments_id', $assessment->id)
+            ->whereIn('events_users_id', $pivotIds->all())
+            ->orderByDesc('id')
+            ->get(['events_users_id', 'score']);
+
+        $scores = [];
+        foreach ($uploads as $upload) {
+            $pid = (int) $upload->events_users_id;
+            if (! array_key_exists($pid, $scores)) {
+                $scores[(string) $pid] = $upload->score !== null ? (int) $upload->score : null;
+            }
+        }
+
+        return response()->json(['scores' => $scores]);
     }
 
     // PUT /api/sessions/{id}

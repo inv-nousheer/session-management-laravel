@@ -10,6 +10,7 @@ use App\Models\AssessmentReopenRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Comment;
+use Illuminate\Support\Facades\Log;
 
 
 class AssessmentController extends Controller
@@ -18,6 +19,7 @@ class AssessmentController extends Controller
     {
         return response()->json(
             Assessment::with([
+                'reopenRequests',
                 'comments',
                 'session.sessionMembers.user',
                 // 'session.sessionMembers.projectUploads' => function ($query) {
@@ -94,11 +96,11 @@ class AssessmentController extends Controller
     public function forSession($id)
     {
         $session = Session::findOrFail($id);
-        return response()->json(Assessment::where('sessions_id', $session->id)->get());
+        return response()->json(Assessment::where('events_id', $session->id)->orderBy('id')->get());
     }
     public function uploadProject(Request $request)
     {
-       // return response()->json(['message' => 'Upload project endpoint']);
+    try {
         $validated = $request->validate([
             'events_id' => 'required|exists:events,id',
             'file_path' => 'required|file|mimes:zip',
@@ -125,6 +127,13 @@ class AssessmentController extends Controller
         ]);
 
         return response()->json($projectUpload, 201);
+    } catch (\Exception $e) {
+        Log::error('Error uploading project: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        Log::error('Upload max filesize: ' . ini_get('upload_max_filesize'));
+        Log::error('Post max size: ' . ini_get('post_max_size'));
+        return response()->json(['errors' => $e->errors()], 422);
+    }
     }
     public function download($id)
     {
