@@ -100,40 +100,59 @@ class AssessmentController extends Controller
     }
     public function uploadProject(Request $request)
     {
-    try {
-        $validated = $request->validate([
-            'events_id' => 'required|exists:events,id',
-            'file_path' => 'required|file|mimes:zip',
-            'user_id' => 'required|exists:users,id',
-            'assessment_id' => 'required|exists:events_assessments,id',
-        ]);
-        $session_member_id = SessionMember::where('events_id', $validated['events_id'])
-        ->where('users_id', $validated['user_id'])
-        ->firstOrFail()
-        ->id;
-         $path = $request->file('file_path')->store('public/uploads');
-        $projectUpload = ProjectUpload::create([
-            'events_users_id' => $session_member_id,
-            'events_assessments_id' => $validated['assessment_id'],
-            'file_path' => $path,
-            'file_name' => $path,
-        ]);
+        try {
+            $validated = $request->validate([
+                'events_id' => 'required|exists:events,id',
+                'user_id' => 'required|exists:users,id',
+                'assessment_id' => 'required|exists:events_assessments,id',
+                'file_path' => 'required_without:submission_link|file|mimes:zip',
+                'submission_link' => 'required_without:file_path|url|max:2048',
+                'notes' => 'nullable|string|max:2000',
+            ]);
 
-        $comment = Comment::create([
-            'events_users_events_assessments_id' => $projectUpload->id,
-            'events_assessments_id' => $validated['assessment_id'],
-            'users_id' => $validated['user_id'],
-            'comments' => 'New file uploaded',
-        ]);
+            $session_member_id = SessionMember::where('events_id', $validated['events_id'])
+                ->where('users_id', $validated['user_id'])
+                ->firstOrFail()
+                ->id;
 
-        return response()->json($projectUpload, 201);
-    } catch (\Exception $e) {
-        Log::error('Error uploading project: ' . $e->getMessage());
-        Log::error('Stack trace: ' . $e->getTraceAsString());
-        Log::error('Upload max filesize: ' . ini_get('upload_max_filesize'));
-        Log::error('Post max size: ' . ini_get('post_max_size'));
-        return response()->json(['errors' => $e->errors()], 422);
-    }
+            if ($request->hasFile('file_path')) {
+                $path = $request->file('file_path')->store('public/uploads');
+                $fileName = $request->file('file_path')->getClientOriginalName();
+                $commentText = 'New file uploaded';
+            } else {
+                $path = $validated['submission_link'];
+                $fileName = $path;
+                $commentText = 'Project link submitted';
+            }
+
+            if (!empty($validated['notes'])) {
+                $commentText .= ': ' . $validated['notes'];
+            }
+
+            $projectUpload = ProjectUpload::create([
+                'events_users_id' => $session_member_id,
+                'events_assessments_id' => $validated['assessment_id'],
+                'file_path' => $path,
+                'file_name' => $fileName,
+            ]);
+
+            Comment::create([
+                'events_users_events_assessments_id' => $projectUpload->id,
+                'events_assessments_id' => $validated['assessment_id'],
+                'users_id' => $validated['user_id'],
+                'comments' => $commentText,
+            ]);
+
+            return response()->json($projectUpload, 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error uploading project: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Upload max filesize: ' . ini_get('upload_max_filesize'));
+            Log::error('Post max size: ' . ini_get('post_max_size'));
+            return response()->json(['message' => 'Failed to submit project'], 500);
+        }
     }
     public function download($id)
     {
@@ -141,12 +160,15 @@ class AssessmentController extends Controller
 
         $path = $upload->file_path;
 
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return redirect()->away($path);
+        }
+
         if (!Storage::exists($path)) {
             return response()->json(['message' => 'File not found'], 404);
         }
 
         return Storage::download($path);
-
     }
     public function userAssessments($session_id, $user_id)
     {

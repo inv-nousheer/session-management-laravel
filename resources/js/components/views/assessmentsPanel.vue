@@ -35,10 +35,46 @@ const sessionStartDate = computed(() => props.sessionDetails?.date)
 const emit = defineEmits('fetchAssessments')
 const user_id = JSON.parse(localStorage.getItem('user'))?.id
 
+const uploadSubmissionType = ref('file')
+
 const formDataOfUploads = ref({
   file_path: null,
+  submission_link: '',
+  notes: '',
   user_id: null,
   assessment_id: null,
+})
+
+const resetUploadForm = () => {
+  uploadSubmissionType.value = 'file'
+  formDataOfUploads.value = {
+    file_path: null,
+    submission_link: '',
+    notes: '',
+    user_id: null,
+    assessment_id: null,
+  }
+}
+
+const switchUploadSubmissionType = (type) => {
+  if (uploadSubmissionType.value === type) return
+  uploadSubmissionType.value = type
+  formDataOfUploads.value.file_path = null
+  formDataOfUploads.value.submission_link = ''
+}
+
+const canSubmitUpload = computed(() => {
+  if (uploadSubmissionType.value === 'file') {
+    return Boolean(formDataOfUploads.value.file_path)
+  }
+  const link = formDataOfUploads.value.submission_link?.trim()
+  if (!link) return false
+  try {
+    const url = new URL(link)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 })
 
 const formData = ref({
@@ -176,12 +212,14 @@ const openProjectUploadsModal = (assessment) => {
 //     alert('Cannot upload files for an assessment that has already ended.')
 //     return
 //   }
+  resetUploadForm()
   showModalForProjectUploads.value = true
   formDataOfUploads.value.assessment_id = assessment.id
 }
 
 const closeProjectUploadsModal = () => {
   showModalForProjectUploads.value = false
+  resetUploadForm()
 }
 
 const handleFileChange = (e) => {
@@ -248,50 +286,70 @@ const submitForm = async () => {
 }
 
 const submitFormOfUploads = async () => {
-  // Validate file exists
-  if (!formDataOfUploads.value.file_path) {
-    alert('Please select a ZIP file to upload')
-    return
-  }
+  const userId = JSON.parse(localStorage.getItem('user'))?.id
+  const isFileSubmission = uploadSubmissionType.value === 'file'
 
-  // PHP on many servers rejects uploads above upload_max_filesize (often 2MB by default).
-  // If that happens, Laravel won't receive the file at all and will return "file_path required".
-  const maxBytes = 30 * 1024 * 1024 // 2MB
-  if (formDataOfUploads.value.file_path.size > maxBytes) {
-    alert('Selected ZIP is larger than 2MB. Please upload a smaller file or increase server upload limits (upload_max_filesize/post_max_size).')
-    return
+  if (isFileSubmission) {
+    if (!formDataOfUploads.value.file_path) {
+      alert('Please select a ZIP file to upload')
+      return
+    }
+
+    const maxBytes = 30 * 1024 * 1024
+    if (formDataOfUploads.value.file_path.size > maxBytes) {
+      alert('Selected ZIP is larger than 30MB. Please upload a smaller file or increase server upload limits (upload_max_filesize/post_max_size).')
+      return
+    }
+  } else {
+    if (!canSubmitUpload.value) {
+      alert('Please enter a valid URL (must start with http:// or https://)')
+      return
+    }
   }
 
   submitting.value = true
-  isUploading.value = true
+  isUploading.value = isFileSubmission
   uploadProgress.value = 0
   try {
-    const formDataMultipart = new FormData()
-    formDataMultipart.append('user_id', JSON.parse(localStorage.getItem('user'))?.id)
-    formDataMultipart.append('events_id', route.params.id)
-    formDataMultipart.append('assessment_id', formDataOfUploads.value.assessment_id)
-    // Append file with proper field name matching backend expectation
-    formDataMultipart.append('file_path', formDataOfUploads.value.file_path)
-
-    console.log("[v0] Uploading file:", formDataOfUploads.value.file_path.name)
-    console.log([...formDataMultipart.entries()])
-
-    await api.post('/api/project-uploads', formDataMultipart, {
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total) {
-          uploadProgress.value = Math.round((progressEvent.loaded / progressEvent.total) * 100)
-        }
+    if (isFileSubmission) {
+      const formDataMultipart = new FormData()
+      formDataMultipart.append('user_id', userId)
+      formDataMultipart.append('events_id', route.params.id)
+      formDataMultipart.append('assessment_id', formDataOfUploads.value.assessment_id)
+      formDataMultipart.append('file_path', formDataOfUploads.value.file_path)
+      if (formDataOfUploads.value.notes?.trim()) {
+        formDataMultipart.append('notes', formDataOfUploads.value.notes.trim())
       }
-    })
-    alert('File uploaded successfully')
+
+      await api.post('/api/project-uploads', formDataMultipart, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            uploadProgress.value = Math.round((progressEvent.loaded / progressEvent.total) * 100)
+          }
+        }
+      })
+    } else {
+      await api.post('/api/project-uploads', {
+        user_id: userId,
+        events_id: route.params.id,
+        assessment_id: formDataOfUploads.value.assessment_id,
+        submission_link: formDataOfUploads.value.submission_link.trim(),
+        notes: formDataOfUploads.value.notes?.trim() || undefined,
+      })
+    }
+
+    alert(isFileSubmission ? 'File uploaded successfully' : 'Link submitted successfully')
     emit('fetchAssessments')
     closeProjectUploadsModal()
-    // Reset form
-    formDataOfUploads.value.file_path = null
-    formDataOfUploads.value.assessment_id = null
   } catch (err) {
-    console.error("[v0] Upload error:", err.response?.data || err.message)
-    alert(`Upload failed: ${err.response?.data?.errors?.file_path?.[0] || err.response?.data?.message || err.message}`)
+    console.error('[upload] error:', err.response?.data || err.message)
+    const errors = err.response?.data?.errors
+    const message =
+      errors?.file_path?.[0] ||
+      errors?.submission_link?.[0] ||
+      err.response?.data?.message ||
+      err.message
+    alert(`Submission failed: ${message}`)
   } finally {
     submitting.value = false
     isUploading.value = false
@@ -370,7 +428,7 @@ const checkIfUserCanUpload = (assessment) => {
     console.log('Checking if user can upload for assessment:', assessment.name)
     const endDate = new Date(assessment.end_date_time)
     const now = new Date()
-    if (now > endDate) {
+
         const user = JSON.parse(localStorage.getItem('user'))
 
         const sessionMember = assessment.session.session_members.find(
@@ -379,12 +437,24 @@ const checkIfUserCanUpload = (assessment) => {
 
         if (!sessionMember) return false
 
-        const hasRequestedReopen = assessment.reopen_requests.some(
-            request => request.events_users_id === sessionMember.id && request.status === 1
+       const reopenRequest = assessment.reopen_requests.find(
+            request => request.events_users_id === sessionMember.id
         )
-        console.log('User has requested reopen:', hasRequestedReopen)
-        return hasRequestedReopen
-    }
+
+        if (!reopenRequest) {
+            console.log('User has not requested a reopen for this assessment.')
+             if (now < endDate)
+                return true
+        }
+        console.log('User has a reopen request with status:', reopenRequest.status)
+
+        if (reopenRequest.status === 1) {
+            return true
+        }
+
+        return false
+
+    
 
 
 }
@@ -523,7 +593,7 @@ const hasRequestedExtension = (assessment) => {
                     >
                     <!-- Upload button -->
                     <button
-                        v-if="checkIfUserCanUpload(assessment)"
+                         v-if="checkIfUserCanUpload(assessment)"
                         @click="openProjectUploadsModal(assessment)"
                         class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 text-sm"
                     >
@@ -694,12 +764,47 @@ const hasRequestedExtension = (assessment) => {
 
         <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg z-50 border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div class="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-5">
-            <h3 class="text-xl font-bold text-white">Upload Assessment Files</h3>
-            <p class="text-purple-100 text-sm mt-0.5">Submit your completed work for this assessment</p>
+            <h3 class="text-xl font-bold text-white">Submit Assessment</h3>
+            <p class="text-purple-100 text-sm mt-0.5">Upload a ZIP file or paste a project link</p>
           </div>
 
           <div class="p-6 space-y-5">
-            <div>
+            <div class="flex rounded-xl bg-gray-100 dark:bg-slate-700/60 p-1 gap-1">
+              <button
+                type="button"
+                @click="switchUploadSubmissionType('file')"
+                :disabled="isUploading || submitting"
+                :class="[
+                  'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all',
+                  uploadSubmissionType === 'file'
+                    ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ]"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                File
+              </button>
+              <button
+                type="button"
+                @click="switchUploadSubmissionType('link')"
+                :disabled="isUploading || submitting"
+                :class="[
+                  'flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-semibold transition-all',
+                  uploadSubmissionType === 'link'
+                    ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ]"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                Link
+              </button>
+            </div>
+
+            <div v-if="uploadSubmissionType === 'file'">
               <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-2">ZIP File <span class="text-red-500">*</span></label>
               <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-8 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer" :class="{ 'opacity-50 pointer-events-none': isUploading }">
                 <input type="file" accept=".zip" @change="handleFileChangeOfUploads" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :disabled="isUploading" />
@@ -719,6 +824,26 @@ const hasRequestedExtension = (assessment) => {
               </p>
             </div>
 
+            <div v-else>
+              <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-2">Project Link <span class="text-red-500">*</span></label>
+              <input
+                v-model="formDataOfUploads.submission_link"
+                type="url"
+                placeholder="https://github.com/username/project or https://drive.google.com/..."
+                class="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm"
+                :disabled="submitting"
+              />
+              <p v-if="formDataOfUploads.submission_link && !canSubmitUpload" class="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                Enter a valid URL starting with http:// or https://
+              </p>
+              <p v-else-if="canSubmitUpload" class="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="truncate">{{ formDataOfUploads.submission_link }}</span>
+              </p>
+            </div>
+
             <!-- Upload Progress Bar -->
             <div v-if="isUploading" class="space-y-2">
               <div class="flex items-center justify-between">
@@ -733,10 +858,11 @@ const hasRequestedExtension = (assessment) => {
             <div>
               <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-1.5">Notes (Optional)</label>
               <textarea
+                v-model="formDataOfUploads.notes"
                 class="w-full px-4 py-3 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none text-sm"
                 rows="3"
-                placeholder="Add notes or links related to your submission..."
-                :disabled="isUploading"
+                placeholder="Add notes about your submission..."
+                :disabled="isUploading || submitting"
               ></textarea>
             </div>
           </div>
@@ -745,7 +871,7 @@ const hasRequestedExtension = (assessment) => {
             <button @click="closeProjectUploadsModal" :disabled="submitting" class="px-5 py-2.5 border border-gray-300 dark:border-slate-600 rounded-xl text-sm font-semibold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
               Cancel
             </button>
-            <button @click="submitFormOfUploads" :disabled="submitting || !formDataOfUploads.file_path" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            <button @click="submitFormOfUploads" :disabled="submitting || !canSubmitUpload" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
               <span v-if="submitting" class="animate-spin inline-block">⟳</span>
               Submit
             </button>

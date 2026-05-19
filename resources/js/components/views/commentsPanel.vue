@@ -103,6 +103,15 @@ const handleScoreKeydown = (e, uploadId) => {
 const downloadFile = (uploadId) => {
     window.open(`/api/download/${uploadId}`, '_blank')
 }
+const openUrl = (uploadId) => {
+    const upload = selectedMemberUploadsById.value.get(uploadId)
+    console.log('Opening URL for upload:', upload)
+    if (upload?.file_path) {
+        window.open(upload.file_path, '_blank')
+    } else {
+        alert('No URL found for this file.')
+    }
+}
 
 const getFileName = (filePath) => {
     return filePath?.split('/').pop() || filePath
@@ -141,6 +150,7 @@ const selectedMemberUploadIds = computed(() => {
 
 const selectedMemberComments = computed(() => {
     const comments = selectedAssessment.value?.comments || []
+    console.log('All comments for assessment:', comments)
     const uploadIds = new Set(selectedMemberUploadIds.value)
     if (!uploadIds.size) return []
     return comments.filter((c) => uploadIds.has(c?.events_users_events_assessments_id))
@@ -348,28 +358,52 @@ watch(() => props.assessments, (newAssessments) => {
                 <!-- Score applies to the latest uploaded file for this assessment -->
                 <div
                   v-if="activeUploadForReply"
-                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800/80 flex flex-wrap items-center gap-2 shrink-0"
+                  class="score-bar px-4 py-3 border-b border-violet-100 dark:border-violet-900/40 bg-gradient-to-r from-violet-50 via-white to-violet-50/50 dark:from-violet-950/40 dark:via-slate-800 dark:to-violet-950/20 flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0"
                 >
-                  <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Score (latest file)</span>
-                  <span class="text-xs text-gray-400 truncate max-w-[min(100%,12rem)]" :title="getFileName(activeUploadForReply.file_path)">
-                    {{ getFileName(activeUploadForReply.file_path) }}
-                  </span>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-100 text-violet-600 dark:bg-violet-900/60 dark:text-violet-300">
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                    </span>
+                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">Score</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[min(100%,14rem)]" :title="getFileName(activeUploadForReply.file_path)">
+                      · {{ getFileName(activeUploadForReply.file_path) }}
+                    </span>
+                  </div>
                   <div class="ml-auto flex items-center gap-2">
-                    <input
-                      v-model="scoreInputs[activeUploadForReply.id]"
-                      type="number"
-                      min="0"
-                      max="100"
-                      placeholder="0–100"
-                      class="w-24 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                      :disabled="isSavingScore(activeUploadForReply.id)"
-                      @blur="updateScore(activeUploadForReply.id)"
-                      @keydown="handleScoreKeydown($event, activeUploadForReply.id)"
-                    />
+                    <label class="score-input-group flex items-stretch overflow-hidden rounded-lg border-2 border-violet-300 bg-white shadow-sm transition-shadow focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/30 dark:border-violet-500/50 dark:bg-slate-900 dark:focus-within:ring-violet-400/25">
+                      <span class="sr-only">Score out of 100 for latest upload</span>
+                      <input
+                        v-model="scoreInputs[activeUploadForReply.id]"
+                        type="number"
+                        min="0"
+                        max="100"
+                        inputmode="numeric"
+                        placeholder="—"
+                        class="score-input w-14 border-0 bg-transparent py-2 pl-3 pr-1 text-center text-base font-bold tabular-nums text-violet-900 placeholder:text-violet-300 focus:outline-none focus:ring-0 disabled:cursor-wait disabled:opacity-60 dark:text-violet-50 dark:placeholder:text-violet-500/70"
+                        :disabled="isSavingScore(activeUploadForReply.id)"
+                        :aria-busy="isSavingScore(activeUploadForReply.id)"
+                        @blur="updateScore(activeUploadForReply.id)"
+                        @keydown="handleScoreKeydown($event, activeUploadForReply.id)"
+                      />
+                      <span class="flex items-center border-l border-violet-200 bg-violet-50 px-2.5 text-xs font-bold text-violet-600 select-none dark:border-violet-500/30 dark:bg-violet-950/50 dark:text-violet-300">
+                        /10
+                      </span>
+                    </label>
                     <span
-                      v-if="isScoreSaved(activeUploadForReply.id)"
-                      class="text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                      v-if="isSavingScore(activeUploadForReply.id)"
+                      class="text-xs font-medium text-violet-600 dark:text-violet-400 animate-pulse"
                     >
+                      Saving…
+                    </span>
+                    <span
+                      v-else-if="isScoreSaved(activeUploadForReply.id)"
+                      class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
+                    >
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
                       Saved
                     </span>
                   </div>
@@ -433,6 +467,9 @@ watch(() => props.assessments, (newAssessments) => {
                                   </svg>
                                   Download
                                 </button>
+                              </div>
+                              <div v-else class="mt-1">
+                                <a target="_blank" @click="openUrl(uploadForComment(comment).id)" class="text-xs text-violet-600 dark:text-violet-300 hover:underline">click here</a>
                               </div>
                             </div>
 
@@ -551,4 +588,21 @@ watch(() => props.assessments, (newAssessments) => {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.score-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.score-input::placeholder {
+  opacity: 1;
+  font-weight: 600;
+}
+.score-input-group:has(.score-input:disabled) {
+  opacity: 0.75;
+}
 </style>

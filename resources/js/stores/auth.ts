@@ -15,6 +15,10 @@ export const useAuthStore = defineStore('auth', () => {
     const loading = ref(false)
     const error = ref<string | null>(null)
 
+    const getErrorMessage = (err: any, fallback: string) => {
+        return err.response?.data?.message || err.response?.data?.error || fallback
+    }
+
     const login = async (email: string, password: string) => {
         loading.value = true
         error.value = null
@@ -27,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             return res.data.user  // 👈 return user so we can read role
         } catch (err: any) {
-            error.value = err.response?.data?.error || 'Login failed'
+            error.value = getErrorMessage(err, 'Login failed')
             return null
         } finally {
             loading.value = false
@@ -46,7 +50,47 @@ export const useAuthStore = defineStore('auth', () => {
 
             return res.data.user  // 👈 return user so we can read role
         } catch (err: any) {
-            error.value = err.response?.data?.error || 'Registration failed'
+            error.value = getErrorMessage(err, 'Registration failed')
+            return null
+        } finally {
+            loading.value = false
+        }
+    }
+
+    const forgotPassword = async (email: string) => {
+        loading.value = true
+        error.value = null
+        try {
+            const res = await api.post('/api/forgot-password', { email })
+
+            return res.data.message
+        } catch (err: any) {
+            error.value = getErrorMessage(err, 'Unable to send password reset link')
+            return null
+        } finally {
+            loading.value = false
+        }
+    }
+
+    const resetPassword = async (
+        email: string,
+        token: string,
+        password: string,
+        password_confirmation: string
+    ) => {
+        loading.value = true
+        error.value = null
+        try {
+            const res = await api.post('/api/reset-password', {
+                email,
+                token,
+                password,
+                password_confirmation,
+            })
+
+            return res.data.message
+        } catch (err: any) {
+            error.value = getErrorMessage(err, 'Unable to reset password')
             return null
         } finally {
             loading.value = false
@@ -69,5 +113,21 @@ export const useAuthStore = defineStore('auth', () => {
         // optionally call /api/user to refresh user data on page reload
     }
 
-    return { user, loading, error, login, logout, loadUserFromToken, loadUserFromStorage, register }
+    const clearError = () => {
+        error.value = null
+    }
+
+    return {
+        user,
+        loading,
+        error,
+        login,
+        logout,
+        loadUserFromToken,
+        loadUserFromStorage,
+        register,
+        forgotPassword,
+        resetPassword,
+        clearError,
+    }
 })

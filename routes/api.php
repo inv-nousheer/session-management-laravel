@@ -11,6 +11,8 @@ use App\Http\Controllers\CommentController;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::post('/session/{id}/add-members', [SessionController::class, 'addMembers']);

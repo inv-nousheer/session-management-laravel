@@ -15,6 +15,7 @@ const router = createRouter({
     { path: '/', redirect: '/login' },
     // { path: '/user-login', name: 'user-login', component: Login, meta: {  guestOnly: true, role: 'user' } },
     { path: '/login', name: 'login', component: Login, meta: {  guestOnly: true, role: 'admin' } },
+    { path: '/reset-password', name: 'reset-password', component: Login, meta: { guestOnly: true } },
     { path: '/register', name: 'Register', component: Register, meta: { guestOnly: true } },
     { path: '/session-detail/:id', name: 'sessionDetail', component: page, meta: { requiresAuth: true, role: 'admin'  } },
 
