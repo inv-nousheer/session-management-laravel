@@ -478,7 +478,7 @@ const goToSessionDetail = (sessionId) => {
       <!-- List filters — only shown when user has sessions -->
       <div
         v-if="!loading && !error && sessions.length && mySessions.length"
-        class="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 p-4 sm:p-5 shadow-sm"
+        class="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800/80 p-4 sm:p-5 shadow-sm"
       >
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
 
@@ -629,7 +629,7 @@ const goToSessionDetail = (sessionId) => {
         <div
           v-for="session in filteredSessions"
           :key="session.id"
-          class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+          class="group relative bg-gray-200 dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
         >
           <div class="h-1 bg-gradient-to-r from-purple-600 to-purple-400"></div>
 

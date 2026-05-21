@@ -136,7 +136,7 @@ const visibleNavItems = computed(() => navItems.value.filter((n) => n.always))
   >
     <!-- ── Desktop sidebar ──────────────────────────────────────────────── -->
     <aside
-      class="z-20 hidden w-64 shrink-0 overflow-y-auto border-r border-violet-200/70 bg-linear-to-b from-violet-50 via-indigo-50/90 to-slate-50 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 md:flex md:min-h-screen md:flex-col"
+      class="z-20 hidden w-64 shrink-0 overflow-y-auto border-r border-violet-200/70 bg-linear-to-b from-violet-90 via-indigo-50/90 to-slate-50 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 md:flex md:min-h-screen md:flex-col"
     >
       <div class="flex min-h-full flex-1 flex-col py-4 text-slate-600 dark:text-slate-400">
         <a
@@ -186,7 +186,7 @@ const visibleNavItems = computed(() => navItems.value.filter((n) => n.always))
         </ul>
 
         <div class="mt-auto px-4 pt-6">
-          <div class="group relative overflow-hidden rounded-2xl border border-white/70 bg-white/75 p-3 shadow-lg shadow-violet-100/70 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-200/70 dark:border-slate-700/70 dark:bg-slate-900/70 dark:shadow-slate-950/40 dark:hover:shadow-indigo-950/50">
+          <div class="group relative overflow-hidden rounded-2xl border border-white/70 bg-gray-200 p-3 shadow-lg shadow-violet-100/70 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-violet-200/70 dark:border-slate-700/70 dark:bg-slate-900/70 dark:shadow-slate-950/40 dark:hover:shadow-indigo-950/50">
             <div class="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-violet-500 via-indigo-500 to-fuchsia-500"></div>
             <div class="flex items-center gap-3">
               <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-violet-600 to-indigo-600 text-sm font-bold text-white shadow-md shadow-violet-500/30 ring-2 ring-white/80 dark:from-violet-500 dark:to-indigo-500 dark:ring-slate-800">
@@ -303,7 +303,7 @@ const visibleNavItems = computed(() => navItems.value.filter((n) => n.always))
     <div class="flex flex-col flex-1 w-full min-w-0">
 
       <!-- Header -->
-      <header class="z-10 border-b border-slate-200/90 bg-white/90 py-4 shadow-sm backdrop-blur-md dark:border-indigo-950/80 dark:bg-indigo-950/95 dark:shadow-indigo-950/20">
+      <header class="z-10 border-b border-slate-200/90 bg-gray-200 py-4 shadow-sm backdrop-blur-md dark:border-indigo-950/80 dark:bg-indigo-950/95 dark:shadow-indigo-950/20">
         <div class="container mx-auto flex h-full items-center justify-between px-6 text-slate-700 dark:text-indigo-100">
 
           <!-- Mobile hamburger -->

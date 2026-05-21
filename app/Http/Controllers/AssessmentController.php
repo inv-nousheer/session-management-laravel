@@ -100,12 +100,13 @@ class AssessmentController extends Controller
     }
     public function uploadProject(Request $request)
     {
+
         try {
             $validated = $request->validate([
                 'events_id' => 'required|exists:events,id',
                 'user_id' => 'required|exists:users,id',
                 'assessment_id' => 'required|exists:events_assessments,id',
-                'file_path' => 'required_without:submission_link|file|mimes:zip',
+                'file_path' => 'required_without:submission_link|file|mimes:zip,rar,7z,tar,gz',
                 'submission_link' => 'required_without:file_path|url|max:2048',
                 'notes' => 'nullable|string|max:2000',
             ]);

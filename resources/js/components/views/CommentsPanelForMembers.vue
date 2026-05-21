@@ -202,19 +202,19 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-gray-50 dark:bg-slate-900 overflow-hidden">
+  <div class="h-screen flex flex-col bg-slate-100 dark:bg-slate-900 overflow-hidden">
 
     <!-- Header -->
-    <div class="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-6 py-4 shadow-sm flex-shrink-0">
-      <h1 class="text-xl font-bold text-gray-900 dark:text-white">My Feedback</h1>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">View instructor feedback and scores on your submissions</p>
+    <div class="bg-slate-50 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 px-6 py-4 shadow-sm flex-shrink-0">
+      <h1 class="text-xl font-bold text-slate-950 dark:text-white">My Feedback</h1>
+      <p class="text-xs text-slate-500 dark:text-gray-400 mt-0.5">View instructor feedback and scores on your submissions</p>
     </div>
 
     <!-- Body -->
     <div class="flex-1 flex overflow-hidden gap-4 p-4 min-h-0">
 
       <!-- ── LEFT PANEL ── -->
-      <div class="w-72 shrink-0 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden">
+      <div class="w-72 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden shadow-sm">
         <div class="px-4 py-3 bg-violet-700 dark:bg-violet-800 shrink-0">
           <h2 class="text-xs font-semibold text-violet-100 uppercase tracking-wider">Submissions</h2>
           <p class="text-violet-300 text-xs mt-0.5">{{ assessments?.length || 0 }} assessments</p>
@@ -223,7 +223,7 @@ onMounted(async () => {
         <div v-if="loading" class="flex-1 flex items-center justify-center">
           <div class="text-center">
             <div class="w-8 h-8 border-[3px] border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-2"></div>
-            <p class="text-xs text-gray-400">Loading…</p>
+            <p class="text-xs text-slate-500">Loading…</p>
           </div>
         </div>
 
@@ -232,15 +232,15 @@ onMounted(async () => {
             <svg class="w-8 h-8 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-xs font-medium text-gray-600 dark:text-white">Failed to load</p>
+            <p class="text-xs font-medium text-slate-600 dark:text-white">Failed to load</p>
           </div>
         </div>
 
         <div v-else-if="assessments.length === 0" class="flex-1 flex items-center justify-center p-5 text-center">
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">No submissions yet</p>
+          <p class="text-xs font-medium text-slate-500 dark:text-gray-400">No submissions yet</p>
         </div>
 
-        <div v-else class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700 min-h-0">
+        <div v-else class="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700 min-h-0">
           <button
             v-for="upload in assessments"
             :key="upload.id"
@@ -249,15 +249,15 @@ onMounted(async () => {
               'w-full px-4 py-3 text-left transition-all duration-150 flex items-start gap-2.5',
               selectedFeedback?.id === upload.id
                 ? 'bg-violet-50 dark:bg-violet-900/20 border-l-2 border-l-violet-600'
-                : 'hover:bg-gray-50 dark:hover:bg-slate-700/40'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-700/40'
             ]"
           >
             <div class="shrink-0 pt-1.5">
-              <div :class="['w-2 h-2 rounded-full', upload.comments?.length > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600']"></div>
+              <div :class="['w-2 h-2 rounded-full', upload.comments?.length > 0 ? 'bg-blue-500' : 'bg-slate-300 dark:bg-gray-600']"></div>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ upload.assessment.name }}</p>
-              <p class="text-xs text-gray-400 mt-0.5">Due {{ formatDateOnly(upload.assessment.end_date_time) }}</p>
+              <p class="text-sm font-semibold text-slate-950 dark:text-white truncate">{{ upload.assessment.name }}</p>
+              <p class="text-xs text-slate-500 mt-0.5">Due {{ formatDateOnly(upload.assessment.end_date_time) }}</p>
               <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <span :class="[
                   'text-xs px-2 py-0.5 rounded-full',
@@ -278,25 +278,25 @@ onMounted(async () => {
       <div class="flex-1 hidden lg:flex flex-col min-w-0 min-h-0">
 
         <!-- Placeholder -->
-        <div v-if="!selectedFeedback" class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 h-full flex flex-col items-center justify-center text-center p-10">
-          <div class="w-14 h-14 bg-gray-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mb-3">
-            <svg class="w-7 h-7 text-gray-300 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div v-if="!selectedFeedback" class="bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 h-full flex flex-col items-center justify-center text-center p-10 shadow-sm">
+          <div class="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mb-3">
+            <svg class="w-7 h-7 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Select a submission to view feedback</p>
-          <p class="text-xs text-gray-400 mt-1">Click any item from the left panel</p>
+          <p class="text-sm font-medium text-slate-600 dark:text-gray-400">Select a submission to view feedback</p>
+          <p class="text-xs text-slate-500 mt-1">Click any item from the left panel</p>
         </div>
 
         <!-- ── MERGED CARD ── -->
-        <div v-else class="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden h-full">
+        <div v-else class="bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden h-full shadow-sm">
 
           <!-- Assessment Info -->
-          <div class="px-5 py-4 border-b border-gray-100 dark:border-slate-700 shrink-0">
+          <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ selectedFeedback.assessment.name }}</h2>
-                <div class="flex gap-4 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <h2 class="text-base font-bold text-slate-950 dark:text-white">{{ selectedFeedback.assessment.name }}</h2>
+                <div class="flex gap-4 mt-1.5 text-xs text-slate-500 dark:text-gray-400">
                   <span class="flex items-center gap-1">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v2a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
@@ -319,29 +319,29 @@ onMounted(async () => {
               ]">{{ selectedFeedback.status === 1 ? 'Submitted' : 'Pending' }}</span>
             </div>
 
-            <p v-if="selectedFeedback.assessment.description" class="text-xs text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
+            <p v-if="selectedFeedback.assessment.description" class="text-xs text-slate-500 dark:text-gray-400 mt-2 leading-relaxed">
               {{ selectedFeedback.assessment.description }}
             </p>
 
             <!-- Score bar -->
-            <div v-if="hasScore(selectedFeedback)" class="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">
-              <span class="text-xs text-gray-500 dark:text-gray-400">Score</span>
+            <div v-if="hasScore(selectedFeedback)" class="flex items-center gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+              <span class="text-xs text-slate-500 dark:text-gray-400">Score</span>
               <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
                 {{ selectedFeedback.score }}/10 · {{ gradeLabel(selectedFeedback.score) }}
               </span>
-              <div class="flex-1 h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div class="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div
                   class="h-full rounded-full transition-all duration-500"
                   :style="{ width: selectedFeedback.score + '%', background: scoreBarColor(selectedFeedback.score) }"
                 ></div>
               </div>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ gradeMessage(selectedFeedback.score) }}</span>
+              <span class="text-xs text-slate-500 dark:text-gray-400">{{ gradeMessage(selectedFeedback.score) }}</span>
             </div>
           </div>
 
           <!-- Thread label -->
-          <div class="px-5 py-2 bg-gray-50 dark:bg-slate-700/40 border-b border-gray-100 dark:border-slate-700 shrink-0">
-            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Activity &amp; Feedback</p>
+          <div class="px-5 py-2 bg-slate-100 dark:bg-slate-700/40 border-b border-slate-200 dark:border-slate-700 shrink-0">
+            <p class="text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wider">Activity &amp; Feedback</p>
           </div>
 
           <!-- Comment Thread -->
@@ -349,13 +349,13 @@ onMounted(async () => {
 
             <!-- No activity -->
             <div v-if="!selectedFeedbackComments.length" class="flex flex-col items-center justify-center h-full text-center py-12">
-              <div class="w-11 h-11 bg-gray-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mb-3">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-11 h-11 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">No activity yet</p>
-              <p class="text-xs text-gray-400 mt-1">Your instructor will review your submission soon</p>
+              <p class="text-sm font-medium text-slate-600 dark:text-gray-400">No activity yet</p>
+              <p class="text-xs text-slate-500 mt-1">Your instructor will review your submission soon</p>
             </div>
 
             <template v-else>
@@ -382,8 +382,8 @@ onMounted(async () => {
                         :class="[
                           'rounded-xl px-3 py-2',
                           isStudentComment(comment)
-                            ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-tl-sm'
-                            : 'bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/50 rounded-tr-sm'
+                            ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-tl-sm'
+                            : 'bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50 rounded-tr-sm'
                         ]"
                       >
                         <div class="flex items-center gap-2 mb-1">
@@ -397,9 +397,9 @@ onMounted(async () => {
                           >
                             {{ getAuthorLabel(comment) }}
                           </span>
-                          <span class="text-xs text-gray-400 ml-auto">{{ formatDateTime(comment.created_at) }}</span>
+                          <span class="text-xs text-slate-500 ml-auto">{{ formatDateTime(comment.created_at) }}</span>
                         </div>
-                        <p class="text-sm text-gray-800 dark:text-gray-100 leading-relaxed">{{ comment.comments }}</p>
+                        <p class="text-sm text-slate-800 dark:text-gray-100 leading-relaxed">{{ comment.comments }}</p>
                       </div>
 
                       <div
@@ -431,8 +431,8 @@ onMounted(async () => {
                               :class="[
                                 'rounded-xl px-3 py-2',
                                 isStudentComment(reply)
-                                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-tl-sm'
-                                  : 'bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/50 rounded-tr-sm'
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-tl-sm'
+                                  : 'bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50 rounded-tr-sm'
                               ]"
                             >
                               <div class="flex items-center gap-2 mb-0.5">
@@ -446,9 +446,9 @@ onMounted(async () => {
                                 >
                                   {{ getAuthorLabel(reply) }}
                                 </span>
-                                <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateTime(reply.created_at) }}</span>
+                                <span class="text-xs text-slate-500 dark:text-gray-500">{{ formatDateTime(reply.created_at) }}</span>
                               </div>
-                              <p class="text-sm text-gray-800 dark:text-gray-100">{{ reply.comments }}</p>
+                              <p class="text-sm text-slate-800 dark:text-gray-100">{{ reply.comments }}</p>
                             </div>
                           </div>
                         </div>
@@ -463,14 +463,14 @@ onMounted(async () => {
           <!-- Reply Input — parent thread must exist to reply -->
           <div
             v-if="instructorComment"
-            class="px-5 py-3 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-700/40 shrink-0"
+            class="px-5 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/40 shrink-0"
           >
             <div v-if="user_role !='tl'" class="flex gap-2 items-end">
               <textarea
                 v-model="replies[selectedFeedback.assessment?.id]"
                 placeholder="Reply to instructor feedback…"
                 rows="2"
-                class="flex-1 px-3 py-2 text-sm text-gray-900 dark:text-white bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none transition-all"
+                class="flex-1 px-3 py-2 text-sm text-slate-950 dark:text-white bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none transition-all"
               ></textarea>
               <button
                 @click="handleReply(selectedFeedback, instructorComment.id)"

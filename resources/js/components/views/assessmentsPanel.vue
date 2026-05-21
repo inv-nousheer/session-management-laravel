@@ -5,8 +5,6 @@ import { useRoute } from 'vue-router'
 import flatpickr from 'flatpickr'
 import 'flatpickr/dist/flatpickr.min.css'
 
-const error = ref(false)
-const loading = ref(false)
 const showModal = ref(false)
 const showModalForProjectUploads = ref(false)
 const submitting = ref(false)
@@ -32,7 +30,7 @@ const props = defineProps({
 const sessionStartDate = computed(() => props.sessionDetails?.date)
 
 
-const emit = defineEmits('fetchAssessments')
+const emit = defineEmits(['fetchAssessments'])
 const user_id = JSON.parse(localStorage.getItem('user'))?.id
 
 const uploadSubmissionType = ref('file')
@@ -156,10 +154,13 @@ const initDatePicker = () => {
       allowInput: false,
       clickOpens: true,
       disableMobile: true,
-      static: true,
+     // static: true,
       minDate: minPickerDate.value,
       defaultDate: defaultDates ?? undefined,
       appendTo: datePickerWrap.value || undefined,
+       onClickOutside: (selectedDates, dateStr, instance) => {
+            instance.close()
+        },
       onChange: (selectedDates) => {
         formData.value.start_date_time = selectedDates[0]
           ? toFormDateString(selectedDates[0])
@@ -223,7 +224,7 @@ const closeProjectUploadsModal = () => {
 }
 
 const handleFileChange = (e) => {
-    const file = event.target.files[0]
+    const file = e.target.files[0]
     const allowedTypes = [
     'application/pdf',
     'application/vnd.ms-powerpoint',
@@ -445,16 +446,14 @@ const checkIfUserCanUpload = (assessment) => {
             console.log('User has not requested a reopen for this assessment.')
              if (now < endDate)
                 return true
-        }
-        console.log('User has a reopen request with status:', reopenRequest.status)
-
-        if (reopenRequest.status === 1) {
+        }else if(reopenRequest.status === 1) {
             return true
         }
 
+
         return false
 
-    
+
 
 
 }
@@ -807,7 +806,7 @@ const hasRequestedExtension = (assessment) => {
             <div v-if="uploadSubmissionType === 'file'">
               <label class="block text-sm font-semibold text-gray-900 dark:text-white mb-2">ZIP File <span class="text-red-500">*</span></label>
               <div class="relative border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-8 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all cursor-pointer" :class="{ 'opacity-50 pointer-events-none': isUploading }">
-                <input type="file" accept=".zip" @change="handleFileChangeOfUploads" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :disabled="isUploading" />
+                <input type="file" accept=".zip,.tar,.tar.gz" @change="handleFileChangeOfUploads" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :disabled="isUploading" />
                 <div class="text-center pointer-events-none">
                   <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -906,18 +905,18 @@ input:focus, textarea:focus { outline: none; }
   position: relative;
 }
 
+/* Force the calendar to a fixed width so day cells never wrap */
 .assessment-flatpickr-wrap :deep(.flatpickr-calendar) {
-  position: relative !important;
-  top: 0 !important;
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
   left: 0 !important;
-  width: 100% !important;
-  max-width: 100%;
-  margin-top: 0.75rem;
-  box-shadow: none;
+  width: 308px !important;       /* ← fixed width: 7 cols × 44px */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 8px;
   font-family: inherit;
+  z-index: 9999;
 }
 
 .assessment-flatpickr-wrap :deep(.flatpickr-months .flatpickr-month) {
@@ -937,12 +936,22 @@ input:focus, textarea:focus { outline: none; }
   font-weight: 600;
 }
 
+/* Fixed cell size so 7 days × 44px = 308px, never wraps to 6 rows */
 .assessment-flatpickr-wrap :deep(.flatpickr-day) {
   color: #374151;
   border-radius: 10px;
-  max-width: 38px;
-  height: 38px;
-  line-height: 38px;
+  max-width: 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  flex-basis: 14.2857% !important;
+}
+
+.assessment-flatpickr-wrap :deep(.flatpickr-days),
+.assessment-flatpickr-wrap :deep(.dayContainer) {
+  width: 100% !important;
+  min-width: unset !important;
+  max-width: unset !important;
 }
 
 .assessment-flatpickr-wrap :deep(.flatpickr-day:hover) {

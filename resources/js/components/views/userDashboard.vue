@@ -125,14 +125,14 @@ const chartOptionspie = {
 </script>
 
 <template>
-  <main class="min-h-screen overflow-y-auto bg-gray-50 dark:bg-slate-900">
+  <main class="min-h-screen overflow-y-auto bg-slate-100 dark:bg-red">
     <div class="container px-6 py-8  max-w-8xl">
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
           Dashboard
         </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-sm text-slate-600 dark:text-gray-400">
           Overview of your session metrics
         </p>
       </div>
@@ -140,15 +140,15 @@ const chartOptionspie = {
       <!-- Stats Grid -->
       <div class="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
         <!-- Total Sessions Card -->
-        <div class="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-slate-700">
+        <div class="relative overflow-hidden bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-300 dark:border-slate-700">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-full -mr-16 -mt-16"></div>
           <div class="p-6 relative">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
                   Total Sessions
                 </p>
-                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
                   {{ dashboardDetails.total_sessions }}
                 </p>
               </div>
@@ -162,15 +162,15 @@ const chartOptionspie = {
         </div>
 
         <!-- Total Assessments Card -->
-        <div class="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-slate-700">
+        <div class="relative overflow-hidden bg-rose-50/70 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-rose-200 dark:border-slate-700">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-full -mr-16 -mt-16"></div>
           <div class="p-6 relative">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
                   Total Assessments
                 </p>
-                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
                   {{ dashboardDetails.total_assessments }}
                 </p>
               </div>
@@ -184,15 +184,15 @@ const chartOptionspie = {
         </div>
 
         <!-- Pending Assessments Card -->
-        <div class="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-slate-700">
+        <div class="relative overflow-hidden bg-sky-50/70 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-sky-200 dark:border-slate-700">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
           <div class="p-6 relative">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
                   Pending
                 </p>
-                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
                   {{ dashboardDetails.pending_assessments }}
                 </p>
               </div>
@@ -206,15 +206,15 @@ const chartOptionspie = {
         </div>
 
         <!-- Completed Assessments Card -->
-        <div class="relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-slate-700">
+        <div class="relative overflow-hidden bg-emerald-50/70 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-emerald-200 dark:border-slate-700">
           <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -mr-16 -mt-16"></div>
           <div class="p-6 relative">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
                   Completed
                 </p>
-                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
                   {{ dashboardDetails.completed_assessments }}
                 </p>
               </div>
@@ -231,14 +231,14 @@ const chartOptionspie = {
       <!-- Charts Grid -->
       <div class="grid gap-6 mb-8 lg:grid-cols-3">
         <!-- Bar Chart - Takes 2 columns -->
-        <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-slate-700">
+        <div class="lg:col-span-2 bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-300 dark:border-slate-700">
           <div class="flex items-center gap-3 mb-6">
             <div class="p-2 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
               Sessions Overview
             </h3>
           </div>
@@ -248,7 +248,7 @@ const chartOptionspie = {
         </div>
 
         <!-- Pie Chart - Takes 1 column -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-slate-700">
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-slate-300 dark:border-slate-700">
           <div class="flex items-center gap-3 mb-6">
             <div class="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,7 +256,7 @@ const chartOptionspie = {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
               Distribution
             </h3>
           </div>
@@ -269,8 +269,8 @@ const chartOptionspie = {
       <!-- Tables Grid -->
       <div class="grid gap-6 lg:grid-cols-2">
         <!-- Sessions Table -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-slate-700">
-          <div class="p-6 border-b border-gray-100 dark:border-slate-700">
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-300 dark:border-slate-700">
+          <div class="p-6 border-b border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-3">
               <div class="p-2 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg">
                 <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -278,23 +278,23 @@ const chartOptionspie = {
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Recent Sessions</h3>
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Sessions</h3>
             </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
-              <thead class="bg-gray-50 dark:bg-slate-900/50">
-                <tr class="text-xs font-semibold tracking-wide text-left text-gray-600 dark:text-gray-400 uppercase">
+              <thead class="bg-slate-100 dark:bg-slate-900/50">
+                <tr class="text-xs font-semibold tracking-wide text-left text-slate-600 dark:text-gray-400 uppercase">
                   <th class="px-6 py-4">Name</th>
                   <th class="px-6 py-4">Description</th>
                   <th class="px-6 py-4">Status</th>
                   <th class="px-6 py-4">Date</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
-                <tr v-for="session in dashboardDetails.recentSessions" :key="session.id" class="text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+              <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                <tr v-for="session in dashboardDetails.recentSessions" :key="session.id" class="text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
                   <td class="px-6 py-4">
-                    <p class="font-semibold text-gray-900 dark:text-white">{{ session.title }}</p>
+                    <p class="font-semibold text-slate-950 dark:text-white">{{ session.title }}</p>
                   </td>
                   <td class="px-6 py-4 text-sm">
                     {{ session.description }}
@@ -314,8 +314,8 @@ const chartOptionspie = {
         </div>
 
         <!-- Assessments Table -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-slate-700">
-          <div class="p-6 border-b border-gray-100 dark:border-slate-700">
+        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-300 dark:border-slate-700">
+          <div class="p-6 border-b border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-3">
               <div class="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
                 <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -323,23 +323,23 @@ const chartOptionspie = {
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Recent Assessments</h3>
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Assessments</h3>
             </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
-              <thead class="bg-gray-50 dark:bg-slate-900/50">
-                <tr class="text-xs font-semibold tracking-wide text-left text-gray-600 dark:text-gray-400 uppercase">
+              <thead class="bg-slate-100 dark:bg-slate-900/50">
+                <tr class="text-xs font-semibold tracking-wide text-left text-slate-600 dark:text-gray-400 uppercase">
                   <th class="px-6 py-4">Name</th>
                   <th class="px-6 py-4">Description</th>
                   <th class="px-6 py-4">Start Date</th>
                   <th class="px-6 py-4">End Date</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
-                <tr v-for="assessment in dashboardDetails.recentAssessments" :key="assessment.id" class="text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+              <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                <tr v-for="assessment in dashboardDetails.recentAssessments" :key="assessment.id" class="text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
                   <td class="px-6 py-4">
-                    <p class="font-semibold text-gray-900 dark:text-white">{{ assessment.name }}</p>
+                    <p class="font-semibold text-slate-950 dark:text-white">{{ assessment.name }}</p>
                   </td>
                   <td class="px-6 py-4 text-sm">
                     {{ assessment.description }}

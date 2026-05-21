@@ -172,7 +172,7 @@ const submitForm = async () => {
             <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-            
+
           </button>
           <div class="min-w-0">
             <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ sessionDetails.title }}</h1>
@@ -225,7 +225,7 @@ const submitForm = async () => {
       </div>
 
       <!-- Content Section -->
-      <section class="rounded-2xl border border-gray-200/80 bg-white p-8 shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
+      <section class="rounded-2xl border border-gray-200/80 bg-gray-200 p-8 shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
             <MembersPanel
                 v-if="activePanel === 'members'"
                 :selectedUsers="selectedUsers"
