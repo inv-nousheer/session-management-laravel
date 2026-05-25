@@ -70,6 +70,14 @@ const showModal = ref(false)
 const submitting = ref(false)
 const formError = ref(null)
 const editingUserId = ref(null)
+const pagination = ref({
+  current_page: 1,
+  last_page: 1,
+  per_page: 10,
+  from: 0,
+  to: 0,
+  total: 0,
+})
 
 const ROLE_OPTIONS = [
   { value: 'member', label: 'Member' },
@@ -100,18 +108,68 @@ onMounted(async () => {
   await fetchUsers()
 })
 
-const fetchUsers = async () => {
+const paginationPages = computed(() => {
+  const current = pagination.value.current_page
+  const last = pagination.value.last_page
+  const pages = new Set([1, last])
+
+  for (let page = current - 1; page <= current + 1; page += 1) {
+    if (page >= 1 && page <= last) pages.add(page)
+  }
+
+  return [...pages].sort((a, b) => a - b)
+})
+
+const paginationSummary = computed(() => {
+  if (!pagination.value.total) return 'Showing 0 of 0'
+
+  return `Showing ${pagination.value.from}-${pagination.value.to} of ${pagination.value.total}`
+})
+
+const fetchUsers = async (page = pagination.value.current_page) => {
   loading.value = true
   error.value = null
   try {
-    const res = await api.get('/api/users')
-    users.value = res.data
+    const res = await api.get('/api/users', {
+      params: {
+        page,
+        per_page: pagination.value.per_page,
+      },
+    })
+
+    if (Array.isArray(res.data)) {
+      users.value = res.data
+      pagination.value = {
+        ...pagination.value,
+        current_page: 1,
+        last_page: 1,
+        from: res.data.length ? 1 : 0,
+        to: res.data.length,
+        total: res.data.length,
+      }
+    } else {
+      users.value = res.data.data || []
+      pagination.value = {
+        current_page: res.data.current_page || 1,
+        last_page: res.data.last_page || 1,
+        per_page: Number(res.data.per_page || pagination.value.per_page),
+        from: res.data.from || 0,
+        to: res.data.to || 0,
+        total: res.data.total || 0,
+      }
+    }
   } catch (err) {
     error.value = err
     console.error('Error loading users:', err)
   } finally {
     loading.value = false
   }
+}
+
+const goToPage = async (page) => {
+  if (page < 1 || page > pagination.value.last_page || page === pagination.value.current_page || loading.value) return
+
+  await fetchUsers(page)
 }
 
 const openModal = () => {
@@ -343,7 +401,7 @@ const submitForm = async () => {
                 class="grid px-4 py-3 text-xs font-semibold tracking-wide text-gray-500 uppercase border-t dark:border-gray-700 bg-gray-50 sm:grid-cols-9 dark:text-gray-400 dark:bg-gray-800"
                 >
                 <span class="flex items-center col-span-3">
-                    Showing 21-30 of 100
+                    {{ paginationSummary }}
                 </span>
                 <span class="col-span-2"></span>
                 <!-- Pagination -->
@@ -352,7 +410,9 @@ const submitForm = async () => {
                     <ul class="inline-flex items-center">
                         <li>
                         <button
-                            class="px-3 py-1 rounded-md rounded-l-lg focus:outline-none focus:shadow-outline-purple"
+                            @click="goToPage(pagination.current_page - 1)"
+                            :disabled="loading || pagination.current_page <= 1"
+                            class="px-3 py-1 rounded-md rounded-l-lg focus:outline-none focus:shadow-outline-purple disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Previous"
                         >
                             <svg
@@ -368,54 +428,30 @@ const submitForm = async () => {
                             </svg>
                         </button>
                         </li>
-                        <li>
-                        <button
-                            class="px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple"
-                        >
-                            1
-                        </button>
+                        <template v-for="(page, index) in paginationPages" :key="page">
+                        <li v-if="index > 0 && page - paginationPages[index - 1] > 1" :key="`ellipsis-${page}`">
+                            <span class="px-3 py-1">...</span>
                         </li>
                         <li>
-                        <button
-                            class="px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple"
-                        >
-                            2
-                        </button>
+                            <button
+                            @click="goToPage(page)"
+                            :disabled="loading || page === pagination.current_page"
+                            :class="[
+                                'px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple disabled:cursor-not-allowed',
+                                page === pagination.current_page
+                                ? 'text-white transition-colors duration-150 bg-purple-600 border border-r-0 border-purple-600'
+                                : ''
+                            ]"
+                            >
+                            {{ page }}
+                            </button>
                         </li>
+                        </template>
                         <li>
                         <button
-                            class="px-3 py-1 text-white transition-colors duration-150 bg-purple-600 border border-r-0 border-purple-600 rounded-md focus:outline-none focus:shadow-outline-purple"
-                        >
-                            3
-                        </button>
-                        </li>
-                        <li>
-                        <button
-                            class="px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple"
-                        >
-                            4
-                        </button>
-                        </li>
-                        <li>
-                        <span class="px-3 py-1">...</span>
-                        </li>
-                        <li>
-                        <button
-                            class="px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple"
-                        >
-                            8
-                        </button>
-                        </li>
-                        <li>
-                        <button
-                            class="px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple"
-                        >
-                            9
-                        </button>
-                        </li>
-                        <li>
-                        <button
-                            class="px-3 py-1 rounded-md rounded-r-lg focus:outline-none focus:shadow-outline-purple"
+                            @click="goToPage(pagination.current_page + 1)"
+                            :disabled="loading || pagination.current_page >= pagination.last_page"
+                            class="px-3 py-1 rounded-md rounded-r-lg focus:outline-none focus:shadow-outline-purple disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Next"
                         >
                             <svg

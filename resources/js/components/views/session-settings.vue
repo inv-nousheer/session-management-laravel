@@ -337,8 +337,9 @@ const fetchSession = async () => {
     form.value.title = res.data.title || ''
     form.value.description = res.data.description || ''
    // selectedTeamLeads.push(res.data.)
-   form.value.tags.push(res.data.tags);
-
+    form.value.tags = res.data.tags
+    ? res.data.tags.split(',').map(tag => tag.trim())
+    : null;
 
     // Format datetime for display
     if (res.data.date) {
@@ -415,7 +416,8 @@ const updateSession = async () => {
       title: form.value.title,
       description: form.value.description,
       date: isoDateTime,
-      teamlead_ids: selectedTeamLeads.value.map((u) => u.id).filter(Boolean)
+      teamlead_ids: selectedTeamLeads.value.map((u) => u.id).filter(Boolean),
+      tags: form.value.tags
     })
     success.value = true
     originalForm.value = {...form.value}

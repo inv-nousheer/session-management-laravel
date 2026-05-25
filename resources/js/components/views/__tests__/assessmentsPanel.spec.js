@@ -89,6 +89,7 @@ describe('assessmentsPanel.vue', () => {
     localStorage.setItem('user', JSON.stringify({ id: 7 }))
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.spyOn(window, 'open').mockImplementation(() => null)
     vi.spyOn(console, 'log').mockImplementation(() => {})
   })
 
@@ -146,6 +147,18 @@ describe('assessmentsPanel.vue', () => {
     expect(wrapper.text()).toContain('Already Submitted')
   })
 
+  it('opens the supporting file download when clicked', async () => {
+    const wrapper = mountPanel({
+      assessments: [baseAssessment({ supporting_files: 'public/uploads/brief.pdf' })],
+    })
+
+    await wrapper.findAll('button')
+      .find((button) => button.text().includes('Download supporting files'))
+      .trigger('click')
+
+    expect(window.open).toHaveBeenCalledWith('/api/assessments/10/supporting-file', '_blank')
+  })
+
   it('opens the create modal and posts a new assessment', async () => {
     mocks.api.post.mockResolvedValueOnce({})
     const wrapper = mountPanel()
@@ -201,6 +214,7 @@ describe('assessmentsPanel.vue', () => {
     const payload = mocks.api.post.mock.calls[0][1]
     expect(payload.get('name')).toBe('Updated Capstone')
     expect(payload.get('events_id')).toBeNull()
+    expect(payload.get('_method')).toBe('PUT')
     expect(wrapper.emitted('fetchAssessments')).toHaveLength(1)
   })
 

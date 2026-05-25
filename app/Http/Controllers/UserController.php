@@ -10,9 +10,18 @@ use App\Models\Session;
 
 class UserController extends Controller
 {
-     public function index()
+     public function index(Request $request)
     {
-        return response()->json(User::all());
+        $query = User::query()->orderBy('id');
+
+        if ($request->has('page') || $request->has('per_page')) {
+            $perPage = (int) $request->integer('per_page', 10);
+            $perPage = max(1, min($perPage, 100));
+
+            return response()->json($query->paginate($perPage));
+        }
+
+        return response()->json($query->get());
     }
      public function seminarUsers($id)
     {

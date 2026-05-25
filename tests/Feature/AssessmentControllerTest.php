@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\AssessmentSubmissionUploaded;
 use App\Models\Assessment;
 use App\Models\AssessmentReopenRequest;
 use App\Models\Comment;
@@ -11,6 +12,7 @@ use App\Models\SessionMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -128,6 +130,26 @@ class AssessmentControllerTest extends TestCase
         ]);
     }
 
+    public function test_it_updates_an_assessment_with_a_supporting_file(): void
+    {
+        Storage::fake('local');
+        [, , $assessment] = $this->createAssessmentContext();
+        $file = UploadedFile::fake()->create('updated-brief.pdf', 16, 'application/pdf');
+
+        $response = $this->postJson("/api/assessments/{$assessment->id}", [
+            '_method' => 'PUT',
+            'name' => 'Assessment with updated file',
+            'supporting_files' => $file,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('name', 'Assessment with updated file');
+
+        $storedPath = $response->json('supporting_files');
+        $this->assertNotNull($storedPath);
+        $this->assertTrue(Storage::disk('local')->exists($storedPath));
+    }
+
     public function test_it_lists_assessments_for_a_session_in_id_order(): void
     {
         $session = $this->createSession();
@@ -149,6 +171,7 @@ class AssessmentControllerTest extends TestCase
 
     public function test_it_uploads_a_project_file_and_creates_a_comment(): void
     {
+        Mail::fake();
         Storage::fake('local');
         [$session, $member, $assessment] = $this->createAssessmentContext();
         $file = UploadedFile::fake()->create('submission.zip', 24, 'application/zip');
@@ -175,10 +198,16 @@ class AssessmentControllerTest extends TestCase
             'users_id' => $member->users_id,
             'comments' => 'New file uploaded: Please review the README first.',
         ]);
+
+        $creator = User::findOrFail($session->created_by);
+        Mail::assertQueued(AssessmentSubmissionUploaded::class, function ($mail) use ($creator) {
+            return $mail->hasTo($creator->email);
+        });
     }
 
     public function test_it_uploads_a_project_link_and_creates_a_comment(): void
     {
+        Mail::fake();
         [$session, $member, $assessment] = $this->createAssessmentContext();
 
         $response = $this->postJson('/api/project-uploads', [
@@ -198,6 +227,11 @@ class AssessmentControllerTest extends TestCase
             'users_id' => $member->users_id,
             'comments' => 'Project link submitted',
         ]);
+
+        $creator = User::findOrFail($session->created_by);
+        Mail::assertQueued(AssessmentSubmissionUploaded::class, function ($mail) use ($creator) {
+            return $mail->hasTo($creator->email);
+        });
     }
 
     public function test_it_downloads_uploaded_files_and_redirects_external_links(): void
@@ -224,6 +258,18 @@ class AssessmentControllerTest extends TestCase
 
         $this->get("/api/download/{$linkUpload->id}")
             ->assertRedirect('https://example.com/project');
+    }
+
+    public function test_it_downloads_assessment_supporting_file(): void
+    {
+        Storage::fake('local');
+        [, , $assessment] = $this->createAssessmentContext();
+        Storage::disk('local')->put('public/uploads/brief.pdf', 'brief contents');
+        $assessment->update(['supporting_files' => 'public/uploads/brief.pdf']);
+
+        $this->get("/api/assessments/{$assessment->id}/supporting-file")
+            ->assertOk()
+            ->assertHeader('content-disposition');
     }
 
     public function test_it_returns_not_found_when_download_file_is_missing(): void

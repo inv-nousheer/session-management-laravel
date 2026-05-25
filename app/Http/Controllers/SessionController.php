@@ -34,7 +34,7 @@ class SessionController extends Controller
 
         $teamleadIds = $validated['teamlead_ids'] ?? [];
         unset($validated['teamlead_ids']);
-
+        $validated['tags'] = isset($validated['tags']) ? implode(',', $validated['tags']) : null;
         $session = DB::transaction(function () use ($validated, $teamleadIds) {
             $session = Session::create($validated);
 
@@ -202,6 +202,7 @@ class SessionController extends Controller
             'date' => 'required|date',
             'teamlead_ids' => 'sometimes|array',
             'teamlead_ids.*' => 'exists:users,id',
+            'tags' => 'sometimes|array',
         ]);
 
         $teamleadIds = array_values(array_unique($validated['teamlead_ids'] ?? []));
@@ -437,11 +438,11 @@ class SessionController extends Controller
     // GET /api/sessions/{sessionId}/users/{userId}/report
     // CSV report containing all assessments for a specific user in a session,
     // including upload name, upload date, and score (if available).
-    public function userReport( $userId)
+    public function userReport( $userId,$sessionId = null)
     {
-        $session = SessionMember::where('users_id',$userId)->pluck('events_id')->toArray();
+        $session = $sessionId ? [$sessionId] : SessionMember::where('users_id',$userId)->pluck('events_id')->toArray();
 
-        $assessments = Assessment::whereIn('events_id', $session)
+        $assessments = Assessment::whereIn('events_id', $session)->with('session')
             ->orderBy('id')
             ->get(['id', 'events_id', 'name']);
 
@@ -491,9 +492,8 @@ class SessionController extends Controller
                 $upload = $uploadMap[$assessment->id] ?? null;
 
                 fputcsv($out, [
-                    $session[0],
-                    null,
-                   // $session[0]->title,
+                    $assessment->session->id,
+                    $assessment->session->title,
                     $user?->id ?? $member->users_id,
                     $user?->name ?? '',
                     $user?->email ?? '',
@@ -512,6 +512,7 @@ class SessionController extends Controller
     }
     public function destroySessionMembers($id)
     {
+
         $session_member = SessionMember::findOrFail($id);
         $session_member->delete();
         return response()->json(['message' => 'Session Member deleted']);

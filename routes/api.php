@@ -19,7 +19,7 @@ Route::post('/session/{id}/add-members', [SessionController::class, 'addMembers'
 Route::get('/session/{id}/members', [SessionController::class, 'getMembers']);
 Route::post('/sessions/{id}/duplicate', [SessionController::class, 'duplicate']);
 Route::get('/sessions/{id}/report', [SessionController::class, 'report']);
-Route::get('/sessions/users/{userId}/report', [SessionController::class, 'userReport']);
+Route::get('/sessions/users/{userId}/report/{sessionId?}', [SessionController::class, 'userReport']);
 Route::get('/sessions/user/{user_id}/as-team-lead/members', [SessionController::class, 'teamLeadMemberLists']);
 Route::get('/sessions/user/{user_id}', [SessionController::class, 'userSessions']);
 Route::get('/sessions/tags', [SessionController::class, 'tags']);
@@ -28,6 +28,7 @@ Route::get('/seminar-users/{id}', [UserController::class, 'seminarUsers']);
 
 Route::post('/users/import', [\App\Http\Controllers\ImportUsersController::class, 'import']);
 Route::apiResource('users', UserController::class);
+Route::get('/assessments/{id}/supporting-file', [AssessmentController::class, 'downloadSupportingFile']);
 Route::apiResource('assessments', AssessmentController::class);
 Route::post('/project-uploads', [AssessmentController::class, 'uploadProject']);
 Route::post('/project-uploads/{id}/score', [CommentController::class, 'updateScore']);

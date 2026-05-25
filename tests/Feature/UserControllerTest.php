@@ -35,6 +35,21 @@ class UserControllerTest extends TestCase
             ->assertJsonPath('1.name', 'Bob User');
     }
 
+    public function test_it_paginates_users_when_requested(): void
+    {
+        User::factory()->count(12)->create();
+
+        $response = $this->getJson('/api/users?page=2&per_page=5');
+
+        $response->assertOk()
+            ->assertJsonPath('current_page', 2)
+            ->assertJsonPath('per_page', 5)
+            ->assertJsonPath('from', 6)
+            ->assertJsonPath('to', 10)
+            ->assertJsonPath('total', 12)
+            ->assertJsonCount(5, 'data');
+    }
+
     public function test_it_stores_a_user(): void
     {
         $response = $this->postJson('/api/users', [

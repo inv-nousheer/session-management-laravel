@@ -426,7 +426,7 @@ const submitForm = async () => {
       description:  formData.value.description,
       created_by:   user_id,
       date:         isoDateTime,
-      tags:         formData.value.tags,
+      tags:         formData.value.tags ?? [],
       teamlead_ids: selectedTeamLeads.value.map((u) => u.id).filter(Boolean),
     })
 

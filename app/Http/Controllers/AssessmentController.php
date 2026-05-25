@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AssessmentCreated;
+use App\Mail\AssessmentSubmissionUploaded;
 use App\Models\Assessment;
 use App\Models\SessionMember;
 use App\Models\ProjectUpload;
 use App\Models\Session;
 use App\Models\AssessmentReopenRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Comment;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +63,48 @@ class AssessmentController extends Controller
 
         //$assessment = Assessment::create($validated);
 
+        $this->notifySessionMembersAboutAssessment($assessment);
+
         return response()->json($assessment, 201);
+    }
+
+    private function notifySessionMembersAboutAssessment(Assessment $assessment): void
+    {
+        try {
+            $assessment->loadMissing('session');
+
+            $members = SessionMember::with('user')
+                ->where('events_id', $assessment->events_id)
+                ->where(function ($query) {
+                    $query->where('role', '!=', 2)
+                        ->orWhereNull('role');
+                })
+                ->whereHas('user', function ($query) {
+                    $query->whereNotNull('email')
+                        ->where('email', '!=', '');
+                })
+                ->get();
+
+            foreach ($members as $member) {
+                Mail::to($member->user->email)
+                    ->queue(new AssessmentCreated($this->assessmentCreatedEmailData($assessment, $member)));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to send assessment creation email: ' . $e->getMessage());
+        }
+    }
+
+    private function assessmentCreatedEmailData(Assessment $assessment, SessionMember $member): array
+    {
+        return [
+            'recipientName' => $member->user?->name ?? 'Member',
+            'sessionTitle' => $assessment->session?->title ?? 'Session #' . $assessment->events_id,
+            'assessmentName' => $assessment->name,
+            'description' => $assessment->description ?: 'No description provided.',
+            'startDateTime' => Carbon::parse($assessment->start_date_time)->format('M d, Y h:i A'),
+            'endDateTime' => Carbon::parse($assessment->end_date_time)->format('M d, Y h:i A'),
+            'appUrl' => config('app.url'),
+        ];
     }
 
     public function show($id)
@@ -75,10 +120,17 @@ class AssessmentController extends Controller
         $validated = $request->validate([
             'sessions_id' => 'sometimes|required|exists:seminars,id',
             'name' => 'sometimes|required|string|max:255',
+            'start_date_time' => 'sometimes|required|date',
             'end_date_time' => 'sometimes|required|date',
-            'supporting_files' => 'nullable|string',
+            'supporting_files' => 'nullable|file',
             'description' => 'nullable|string',
         ]);
+
+        if ($request->hasFile('supporting_files')) {
+            $validated['supporting_files'] = $request->file('supporting_files')->store('public/uploads');
+        } else {
+            unset($validated['supporting_files']);
+        }
 
         $assessment->update($validated);
 
@@ -120,10 +172,12 @@ class AssessmentController extends Controller
                 $path = $request->file('file_path')->store('public/uploads');
                 $fileName = $request->file('file_path')->getClientOriginalName();
                 $commentText = 'New file uploaded';
+                $submissionType = 'file';
             } else {
                 $path = $validated['submission_link'];
                 $fileName = $path;
                 $commentText = 'Project link submitted';
+                $submissionType = 'link';
             }
 
             if (!empty($validated['notes'])) {
@@ -144,6 +198,10 @@ class AssessmentController extends Controller
                 'comments' => $commentText,
             ]);
 
+            $assessment = Assessment::findOrFail($validated['assessment_id']);
+            $sessionMember = SessionMember::with('user')->findOrFail($session_member_id);
+            $this->notifySessionCreatorAboutSubmission($assessment, $sessionMember, $submissionType, $fileName);
+
             return response()->json($projectUpload, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
@@ -155,6 +213,56 @@ class AssessmentController extends Controller
             return response()->json(['message' => 'Failed to submit project'], 500);
         }
     }
+
+    private function notifySessionCreatorAboutSubmission(
+        Assessment $assessment,
+        SessionMember $sessionMember,
+        string $submissionType,
+        string $submissionLabel
+    ): void {
+        try {
+            $assessment->loadMissing('session.creator');
+            $sessionMember->loadMissing('user');
+
+            $creator = $assessment->session?->creator;
+            if (! $creator?->email) {
+                return;
+            }
+
+            Mail::to($creator->email)
+                ->queue(new AssessmentSubmissionUploaded($this->submissionUploadedEmailData(
+                    $assessment,
+                    $sessionMember,
+                    $submissionType,
+                    $submissionLabel
+                )));
+        } catch (\Throwable $e) {
+            Log::error('Failed to send assessment submission email: ' . $e->getMessage());
+        }
+    }
+
+    private function submissionUploadedEmailData(
+        Assessment $assessment,
+        SessionMember $sessionMember,
+        string $submissionType,
+        string $submissionLabel
+    ): array {
+        $uploaderName = $sessionMember->user?->name ?? 'A user';
+        $actionPhrase = $submissionType === 'link'
+            ? 'submitted a new link'
+            : 'uploaded a new file';
+
+        return [
+            'recipientName' => $assessment->session?->creator?->name ?? 'Session creator',
+            'sessionTitle' => $assessment->session?->title ?? 'Session #' . $assessment->events_id,
+            'assessmentName' => $assessment->name,
+            'uploaderName' => $uploaderName,
+            'actionPhrase' => $actionPhrase,
+            'submissionLabel' => $submissionLabel,
+            'appUrl' => config('app.url'),
+        ];
+    }
+
     public function download($id)
     {
         $upload = ProjectUpload::findOrFail($id);
@@ -171,6 +279,19 @@ class AssessmentController extends Controller
 
         return Storage::download($path);
     }
+
+    public function downloadSupportingFile($id)
+    {
+        $assessment = Assessment::findOrFail($id);
+        $path = $assessment->supporting_files;
+
+        if (! $path || ! Storage::exists($path)) {
+            return response()->json(['message' => 'Supporting file not found'], 404);
+        }
+
+        return Storage::download($path);
+    }
+
     public function userAssessments($session_id, $user_id)
     {
         $session = Session::findOrFail($session_id);

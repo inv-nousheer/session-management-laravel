@@ -125,7 +125,7 @@ const chartOptionspie = {
 </script>
 
 <template>
-  <main class="min-h-screen overflow-y-auto bg-slate-100 dark:bg-red">
+  <main class="min-h-screen overflow-y-auto bg-slate-100 dark:bg-slate-900/20">
     <div class="container px-6 py-8  max-w-8xl">
       <!-- Header -->
       <div class="mb-8">

@@ -332,7 +332,7 @@ onMounted(async () => {
               <div class="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div
                   class="h-full rounded-full transition-all duration-500"
-                  :style="{ width: selectedFeedback.score + '%', background: scoreBarColor(selectedFeedback.score) }"
+                  :style="{ width: (selectedFeedback.score * 10) + '%', background: scoreBarColor(selectedFeedback.score) }"
                 ></div>
               </div>
               <span class="text-xs text-slate-500 dark:text-gray-400">{{ gradeMessage(selectedFeedback.score) }}</span>
@@ -468,6 +468,7 @@ onMounted(async () => {
             <div v-if="user_role !='tl'" class="flex gap-2 items-end">
               <textarea
                 v-model="replies[selectedFeedback.assessment?.id]"
+                @keydown.enter.prevent="handleReply(selectedFeedback, instructorComment.id)"
                 placeholder="Reply to instructor feedback…"
                 rows="2"
                 class="flex-1 px-3 py-2 text-sm text-slate-950 dark:text-white bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none transition-all"

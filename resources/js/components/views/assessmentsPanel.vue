@@ -83,6 +83,15 @@ const formData = ref({
   supporting_files: null
 })
 
+const isSelectedFile = (value) => typeof File !== 'undefined' && value instanceof File
+
+const supportingFileLabel = computed(() => {
+  const supportingFile = formData.value.supporting_files
+  if (isSelectedFile(supportingFile)) return supportingFile.name
+  if (supportingFile) return 'Existing file attached'
+  return 'Click to attach a file'
+})
+
 const dateRangeInput = ref(null)
 const datePickerWrap = ref(null)
 let rangePicker = null
@@ -224,7 +233,9 @@ const closeProjectUploadsModal = () => {
 }
 
 const handleFileChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
+    if (!file) return
+
     const allowedTypes = [
     'application/pdf',
     'application/vnd.ms-powerpoint',
@@ -236,7 +247,7 @@ const handleFileChange = (e) => {
     e.target.value = '' // reset input
     return
   }
-  formData.value.supporting_files = e.target.files[0]
+  formData.value.supporting_files = file
 }
 
 const handleFileChangeOfUploads = (e) => {
@@ -248,21 +259,24 @@ const submitForm = async () => {
 
   try {
     const payload = new FormData()
+
     payload.append('name', formData.value.name)
     payload.append('description', formData.value.description)
 
     if (!isEditMode.value) {
-      payload.append('start_date_time', formData.value.start_date_time)
       payload.append('events_id', route.params.id)
     }
 
+    payload.append('start_date_time', formData.value.start_date_time)
     payload.append('end_date_time', formData.value.end_date_time)
 
-    if (formData.value.supporting_files) {
+    if (isSelectedFile(formData.value.supporting_files)) {
       payload.append('supporting_files', formData.value.supporting_files)
     }
 
     if (isEditMode.value && editingAssessmentId.value) {
+      payload.append('_method', 'PUT')
+
       await api.post(`/api/assessments/${editingAssessmentId.value}`, payload, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
@@ -372,6 +386,10 @@ const requestExtension = async (assessmentId, eventId) => {
   }
 }
 
+const downloadSupportingFiles = (assessmentId) => {
+  window.open(`/api/assessments/${assessmentId}/supporting-file`, '_blank')
+}
+
 const hasUserUpload = (assessment) => {
   const member = assessment.session.session_members.find(m => m.users_id === user_id)
   return member && member.project_uploads
@@ -439,8 +457,9 @@ const checkIfUserCanUpload = (assessment) => {
         if (!sessionMember) return false
 
        const reopenRequest = assessment.reopen_requests.find(
-            request => request.events_users_id === sessionMember.id
+            request => request.events_users_id === sessionMember.id && request.status === 1
         )
+        console.log('Found reopen request:', reopenRequest)
 
         if (!reopenRequest) {
             console.log('User has not requested a reopen for this assessment.')
@@ -583,6 +602,14 @@ const hasRequestedExtension = (assessment) => {
                 </button>
               </div>
             <div v-else class="w-full space-y-3">
+                <div>
+                    <button v-if="assessment.supporting_files"
+                        @click="downloadSupportingFiles(assessment.id)"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 text-sm"
+                    >
+                        Download supporting files
+                    </button>
+                </div>
                 <div
                     v-if="
                         user_role != 'tl' &&
@@ -720,7 +747,7 @@ const hasRequestedExtension = (assessment) => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
                 <span class="text-sm text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors truncate">
-                  {{ formData.supporting_files ? formData.supporting_files.name : 'Click to attach a file' }}
+                  {{ supportingFileLabel }}
                 </span>
                 <input @change="handleFileChange" type="file" class="hidden" :disabled="submitting" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"/>
               </label>

@@ -63,7 +63,7 @@ const addSelectedUser = (user) => {
     }
 }
 const removeSelectedUser = async (userId) => {
-    selectedUsers.value = selectedUsers.value.filter((item) => item.id !== userId)
+    initialSelectedUsers.value = initialSelectedUsers.value.filter((item) => item.pivot_id !== userId)
      try {
         await api.post(`/api/session-member/delete/${userId}`)
         //here
@@ -174,7 +174,7 @@ const handleSearchPaste = (e) => {
         else unmatched.push(token)
     }
 
-   
+
 
     // If at least one member was matched, clear pasted text from input.
     // Keep text only when nothing got populated as chips.
@@ -245,7 +245,7 @@ const roleLabelForMember = (user) => {
 const downloadCsvReport = async (user) => {
     downloadingUserId.value = user.id
     try {
-        const response = await api.get(`/api/sessions/${sessionId}/users/${user.id}/report`, {
+        const response = await api.get(`/api/sessions/users/${user.id}/report/${sessionId}`, {
             responseType: 'blob',
         })
 
@@ -464,7 +464,7 @@ onMounted(() => {
                     >
                         {{ downloadingUserId === user.id ? 'Downloading...' : 'Download CSV report' }}
                     </button>
-                    <button @click="removeSelectedUser(user.id)"
+                    <button @click="removeSelectedUser(user.pivot_id)"
                         class="w-full px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors duration-200">
                         Remove Member
                     </button>

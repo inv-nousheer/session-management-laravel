@@ -125,6 +125,8 @@ const getInitials = (name) => name?.split(' ').map(n => n.charAt(0)).join('').to
 
 const isUploadComment = (item) =>
     (item?.comments || '').trim().toLowerCase() === 'new file uploaded'
+const isFileUrlComment = (item) =>
+     (item?.comments || '').trim().toLowerCase() === 'project link submitted'
 
 const isStudentComment = (item) => {
     const studentId = selectedMember.value?.users_id ?? selectedMember.value?.user?.id
@@ -468,7 +470,8 @@ watch(() => props.assessments, (newAssessments) => {
                                   Download
                                 </button>
                               </div>
-                              <div v-else class="mt-1">
+
+                              <div v-else-if="isFileUrlComment(comment)" class="mt-1">
                                 <a target="_blank" @click="openUrl(uploadForComment(comment).id)" class="text-xs text-violet-600 dark:text-violet-300 hover:underline">click here</a>
                               </div>
                             </div>
@@ -561,6 +564,11 @@ watch(() => props.assessments, (newAssessments) => {
                   <div class="flex gap-2 items-end">
                     <textarea
                       v-model="replies[selectedAssessment?.id]"
+                       @keydown.enter.prevent="
+                            !replies[selectedAssessment?.id]?.trim() || submitting || !activeUploadForReply
+                            ? null
+                            : handleReply(instructorComment?.id || null)
+                        "
                       placeholder="Write feedback…"
                       rows="2"
                       class="flex-1 px-3 py-2 text-sm text-slate-950 dark:text-white bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none transition-all"

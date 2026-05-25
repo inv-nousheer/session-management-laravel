@@ -20,6 +20,17 @@ const users = [
   { id: 2, name: 'Grace Hopper', email: 'grace@example.com', role: 'user' },
 ]
 
+const paginatedUsers = (data = users, overrides = {}) => ({
+  data,
+  current_page: 1,
+  last_page: 1,
+  per_page: 10,
+  from: data.length ? 1 : 0,
+  to: data.length,
+  total: data.length,
+  ...overrides,
+})
+
 const mountPanel = () => mount(Users, {
   attachTo: document.body,
 })
@@ -58,7 +69,9 @@ describe('users.vue', () => {
     const wrapper = mountPanel()
     await flushPromises()
 
-    expect(mocks.api.get).toHaveBeenCalledWith('/api/users')
+    expect(mocks.api.get).toHaveBeenCalledWith('/api/users', {
+      params: { page: 1, per_page: 10 },
+    })
     expect(wrapper.text()).toContain('Users')
     expect(wrapper.text()).toContain('Add User')
     expect(wrapper.text()).toContain('Import Users')
@@ -68,6 +81,42 @@ describe('users.vue', () => {
     expect(wrapper.text()).toContain('admin')
     expect(wrapper.text()).toContain('Grace Hopper')
     expect(wrapper.text()).toContain('grace@example.com')
+  })
+
+  it('fetches the selected user page when pagination is clicked', async () => {
+    mocks.api.get
+      .mockResolvedValueOnce({
+        data: paginatedUsers(users, {
+          current_page: 1,
+          last_page: 3,
+          from: 1,
+          to: 2,
+          total: 6,
+        }),
+      })
+      .mockResolvedValueOnce({
+        data: paginatedUsers([{ id: 3, name: 'Dorothy Vaughan', email: 'dorothy@example.com', role: 'member' }], {
+          current_page: 2,
+          last_page: 3,
+          from: 3,
+          to: 3,
+          total: 6,
+        }),
+      })
+
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Showing 1-2 of 6')
+
+    await wrapper.findAll('button').find((button) => button.text() === '2').trigger('click')
+    await flushPromises()
+
+    expect(mocks.api.get).toHaveBeenLastCalledWith('/api/users', {
+      params: { page: 2, per_page: 10 },
+    })
+    expect(wrapper.text()).toContain('Showing 3-3 of 6')
+    expect(wrapper.text()).toContain('Dorothy Vaughan')
   })
 
   it('renders loading, empty, and error states', async () => {
