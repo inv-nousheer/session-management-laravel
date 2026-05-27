@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import Sessions from '../sessions.vue'
+import Sessions from '../Sessions.vue'
 
 const mocks = vi.hoisted(() => ({
   api: {

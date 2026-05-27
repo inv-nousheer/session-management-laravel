@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import UserDashboard from '../userDashboard.vue'
+import UserDashboard from '../UserDashboard.vue'
 
 const mocks = vi.hoisted(() => ({
   chartRegister: vi.fn(),

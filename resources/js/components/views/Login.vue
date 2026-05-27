@@ -11,6 +11,7 @@ const formMode = ref<'login' | 'forgot'>('login')
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const getQueryParam = (value: unknown) => {
   return Array.isArray(value) ? value[0] ?? '' : value?.toString() ?? ''
@@ -63,6 +64,9 @@ const showLogin = () => {
   auth.clearError()
   successMessage.value = ''
   formMode.value = 'login'
+}
+const loginWithGoogle = () => {
+  window.location.href = 'http://127.0.0.1:8000/api/auth/google'
 }
 </script>
 
@@ -248,6 +252,9 @@ const showLogin = () => {
                 </span>
               </div>
             </div>
+            <button @click="loginWithGoogle">
+                Login with Google
+            </button>
             <div class="form-footer-row">
               <button type="button" class="forgot-link" @click="showForgotPassword">Forgot password?</button>
             </div>

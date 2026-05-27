@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import Page from '../page.vue'
+import Page from '../Page.vue'
 
 const mocks = vi.hoisted(() => ({
   router: {

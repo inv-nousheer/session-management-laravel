@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import UploadsPanel from '../uploadsPanel.vue'
+import UploadsPanel from '../UploadsPanel.vue'
 
 const users = [
   { id: 1, name: 'Ada Lovelace', email: 'ada@example.com' },

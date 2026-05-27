@@ -1,5 +1,5 @@
 <script setup>
-import UserDashboard from './userDashboard.vue'
+import UserDashboard from './UserDashboard.vue'
 </script>
 <template>
 <UserDashboard :all-data="true" />

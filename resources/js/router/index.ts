@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../components/views/login.vue'
-import page from '../components/views/page.vue'
-import Session from '../components/views/sessions.vue'
-import Register from '../components/views/register.vue'
-import sessionDetail from '../components/views/session-detail.vue'
-import Dashboard from '../components/views/dashboard.vue'
-import UserDashboard from '../components/views/userDashboard.vue'
-import Users from '../components/views/users.vue'
-import UsersList from '../components/views/usersList.vue'
+import Login from '../components/views/Login.vue'
+import page from '../components/views/Page.vue'
+import Session from '../components/views/Sessions.vue'
+import Register from '../components/views/Register.vue'
+import sessionDetail from '../components/views/SessionDetail.vue'
+import Dashboard from '../components/views/Dashboard.vue'
+import UserDashboard from '../components/views/UserDashboard.vue'
+import Users from '../components/views/Users.vue'
+import UsersList from '../components/views/UsersList.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -45,22 +45,24 @@ const router = createRouter({
         // { path: 'assessments', component: Assessments }
         ],
         meta: {   requiresAuth: true, role: 'admin' }
+    },
+    {
+    path: '/auth-success',
+    component: () => import('../components/views/AuthSuccess.vue'),
     }
 
 
   ]
 })
 
-router.beforeEach((to, _, next) => {
+router.beforeEach((to, _) => {
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
 
   if (to.meta.requiresAuth && !token) {
-    next('/login')
+    return { name: 'login' }
   }
-  else {
-        next()
-  }
+  return true;
 })
 
 

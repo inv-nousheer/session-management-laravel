@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import Login from '../login.vue'
+import Login from '../Login.vue'
 
 const mocks = vi.hoisted(() => ({
   auth: {

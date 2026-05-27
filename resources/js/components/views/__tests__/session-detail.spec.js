@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
-import SessionDetail from '../session-detail.vue'
+import SessionDetail from '../SessionDetail.vue'
 
 const mocks = vi.hoisted(() => ({
   api: {
@@ -24,7 +24,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => mocks.router,
 }))
 
-vi.mock('@/components/views/membersPanel.vue', () => ({
+vi.mock('@/components/views/MembersPanel.vue', () => ({
   default: {
     name: 'MembersPanel',
     props: ['selectedUsers', 'loading', 'error', 'users', 'sessionId'],
@@ -32,14 +32,14 @@ vi.mock('@/components/views/membersPanel.vue', () => ({
   },
 }), { virtual: true })
 
-vi.mock('@/components/views/uploadsPanel.vue', () => ({
+vi.mock('@/components/views/UploadsPanel.vue', () => ({
   default: {
     name: 'UploadsPanel',
     template: '<div data-test="uploads-panel">Uploads Panel</div>',
   },
 }), { virtual: true })
 
-vi.mock('@/components/views/assessmentsPanel.vue', () => ({
+vi.mock('@/components/views/AssessmentsPanel.vue', () => ({
   default: {
     name: 'AssessmentsPanel',
     props: ['assessments', 'activePanel', 'sessionDetails'],
@@ -53,7 +53,7 @@ vi.mock('@/components/views/assessmentsPanel.vue', () => ({
   },
 }), { virtual: true })
 
-vi.mock('@/components/views/commentsPanel.vue', () => ({
+vi.mock('@/components/views/CommentsPanel.vue', () => ({
   default: {
     name: 'CommentsPanel',
     emits: ['fetchAssessments'],
@@ -68,14 +68,14 @@ vi.mock('@/components/views/CommentsPanelForMembers.vue', () => ({
   },
 }), { virtual: true })
 
-vi.mock('@/components/views/session-settings.vue', () => ({
+vi.mock('@/components/views/SessionSettings.vue', () => ({
   default: {
     name: 'SessionSettings',
     template: '<div data-test="session-settings">Session Settings Panel</div>',
   },
 }), { virtual: true })
 
-vi.mock('@/components/views/reopenrequestsPanel.vue', () => ({
+vi.mock('@/components/views/ReopenrequestsPanel.vue', () => ({
   default: {
     name: 'ReopenrequestsPanel',
     template: '<div data-test="reopen-requests-panel">Reopen Requests Panel</div>',

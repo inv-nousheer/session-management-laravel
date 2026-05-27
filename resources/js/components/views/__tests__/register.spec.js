@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import Register from '../register.vue'
+import Register from '../Register.vue'
 
 const mocks = vi.hoisted(() => ({
   auth: {

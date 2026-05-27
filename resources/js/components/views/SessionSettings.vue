@@ -339,7 +339,7 @@ const fetchSession = async () => {
    // selectedTeamLeads.push(res.data.)
     form.value.tags = res.data.tags
     ? res.data.tags.split(',').map(tag => tag.trim())
-    : null;
+    : [];
 
     // Format datetime for display
     if (res.data.date) {

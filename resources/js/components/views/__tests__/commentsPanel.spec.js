@@ -66,7 +66,7 @@ const buildAssessment = (overrides = {}) => ({
 })
 
 const mountPanel = async (props = {}) => {
-  const { default: CommentsPanel } = await import('../commentsPanel.vue')
+  const { default: CommentsPanel } = await import('../CommentsPanel.vue')
 
   return mount(CommentsPanel, {
     attachTo: document.body,

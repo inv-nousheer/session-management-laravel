@@ -2,13 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/axios.js'
-import MembersPanel from '@/components/views/membersPanel.vue'
-import UploadsPanel from '@/components/views/uploadsPanel.vue'
-import AssessmentsPanel from '@/components/views/assessmentsPanel.vue'
-import CommentsPanel from '@/components/views/commentsPanel.vue'
+import MembersPanel from '@/components/views/MembersPanel.vue'
+import UploadsPanel from '@/components/views/UploadsPanel.vue'
+import AssessmentsPanel from '@/components/views/AssessmentsPanel.vue'
+import CommentsPanel from '@/components/views/CommentsPanel.vue'
 import CommentsPanelForMembers from '@/components/views/CommentsPanelForMembers.vue'
-import SessionSettings from '@/components/views/session-settings.vue'
-import ReopenrequestsPanel from '@/components/views/reopenrequestsPanel.vue'
+import SessionSettings from '@/components/views/SessionSettings.vue'
+import ReopenrequestsPanel from '@/components/views/ReopenrequestsPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -228,12 +228,11 @@ const submitForm = async () => {
       <section class="rounded-2xl border border-gray-200/80 bg-gray-200 p-8 shadow-sm dark:border-gray-700/80 dark:bg-gray-800">
             <MembersPanel
                 v-if="activePanel === 'members'"
-                :selectedUsers="selectedUsers"
+
                 :loading="loading"
                 :error="error"
-                @openModal="openModal"
                 :users="users"
-                :sessionId="sessionId"
+                :sessionId="Number(sessionId)"
             />
 
             <UploadsPanel
