@@ -5,9 +5,12 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
 use Tests\TestCase;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -208,5 +211,66 @@ class AuthControllerTest extends TestCase
             ->postJson('/api/logout')
             ->assertOk()
             ->assertJsonPath('message', 'Successfully logged out');
+    }
+
+    public function test_it_redirects_to_google_for_authentication(): void
+    {
+        $provider = \Mockery::mock();
+        $googleRedirect = new RedirectResponse('https://accounts.google.com/o/oauth2/auth');
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $provider->shouldReceive('stateless')
+            ->once()
+            ->andReturnSelf();
+
+        $provider->shouldReceive('redirect')
+            ->once()
+            ->andReturn($googleRedirect);
+
+        $this->get('/api/auth/google')
+            ->assertRedirect('https://accounts.google.com/o/oauth2/auth');
+    }
+
+    public function test_it_handles_google_callback_creates_user_and_redirects_with_token(): void
+    {
+        $provider = \Mockery::mock();
+        $googleUser = (object) [
+            'name' => 'Google User',
+            'email' => 'google@example.com',
+        ];
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $provider->shouldReceive('stateless')
+            ->once()
+            ->andReturnSelf();
+
+        $provider->shouldReceive('user')
+            ->once()
+            ->andReturn($googleUser);
+
+        $response = $this->get('/api/auth/google/callback');
+
+        $response->assertRedirect();
+        $this->assertStringStartsWith(
+            'http://127.0.0.1:8000/auth-success?token=',
+            $response->headers->get('Location')
+        );
+
+        $this->assertDatabaseHas('users', [
+            'name' => 'Google User',
+            'email' => 'google@example.com',
+            'role' => 'member',
+        ]);
+
+        $token = Str::after($response->headers->get('Location'), 'token=');
+        $this->assertNotEmpty((string) $token);
     }
 }

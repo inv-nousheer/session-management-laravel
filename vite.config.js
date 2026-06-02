@@ -34,8 +34,18 @@ export default defineConfig(({ mode }) => ({
             ignored: ['**/storage/framework/views/**'],
         },
     },
+    // server: {
+    //     host: '127.0.0.1',
+    //     port: 5173,
+    //     strictPort: true,
+    //     hmr: {
+    //         host: '127.0.0.1',
+    //     },
+    //     cors: true,
+    // },
     test: {
         environment: 'jsdom',
+        pool: 'threads',
     },
     resolve: {
         alias: {

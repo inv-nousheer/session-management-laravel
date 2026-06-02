@@ -186,7 +186,7 @@ describe('membersPanel.vue', () => {
     await wrapper.findAll('button').find((button) => button.text().includes('Remove Member')).trigger('click')
     await flushPromises()
 
-    expect(mocks.api.post).toHaveBeenCalledWith('/api/session-member/delete/7')
+    expect(mocks.api.post).toHaveBeenCalledWith('/api/session-member/delete/1001')
     expect(window.alert).toHaveBeenCalledWith('Member deleted successfully!')
     expect(wrapper.text()).toContain('1 member currently in this session.')
   })
@@ -206,7 +206,7 @@ describe('membersPanel.vue', () => {
     await wrapper.findAll('button').find((button) => button.text().includes('Download CSV report')).trigger('click')
     await flushPromises()
 
-    expect(mocks.api.get).toHaveBeenLastCalledWith('/api/sessions/42/users/7/report', {
+    expect(mocks.api.get).toHaveBeenLastCalledWith('/api/sessions/users/7/report/42', {
       responseType: 'blob',
     })
     expect(window.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))

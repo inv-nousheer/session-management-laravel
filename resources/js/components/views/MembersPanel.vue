@@ -64,6 +64,7 @@ const addSelectedUser = (user) => {
 }
 const removeSelectedUser = async (userId) => {
     initialSelectedUsers.value = initialSelectedUsers.value.filter((item) => item.pivot_id !== userId)
+    selectedUsers.value = selectedUsers.value.filter((item) => item.pivot_id !== userId)
      try {
         await api.post(`/api/session-member/delete/${userId}`)
         //here
@@ -299,7 +300,7 @@ onMounted(() => {
             <div
                 class="bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-lg border border-gray-200 dark:border-gray-700">
                 <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-4 flex items-center justify-between">
+                <div class="bg-linear-to-r from-purple-600 to-purple-500 px-6 py-4 flex items-center justify-between">
                     <h3 class="text-lg font-bold text-white" id="modal-title">
                         Add Member to Session
                     </h3>
@@ -432,11 +433,11 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div v-for="user in initialSelectedUsers" :key="user.id" class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 p-6">
                 <!-- Header accent -->
-                <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-purple-400"></div>
+                <div class="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-600 to-purple-400"></div>
 
                 <!-- Member Info -->
                 <div class="mb-4">
-                    <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg mb-3">
+                    <div class="w-12 h-12 bg-linear-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg mb-3">
                         {{ user.name.charAt(0).toUpperCase() }}
                     </div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">

@@ -42,6 +42,14 @@ const buildAssessment = (overrides = {}) => ({
         },
       ],
     },
+    {
+      id: 103,
+      events_users_events_assessments_id: 900,
+      comments: 'Project link submitted',
+      users_id: 7,
+      created_at: '2026-05-01T12:30:00Z',
+      replies: [],
+    },
   ],
   project_uploads: [{ id: 900 }],
   session: {

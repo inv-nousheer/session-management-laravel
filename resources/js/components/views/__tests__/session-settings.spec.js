@@ -195,6 +195,7 @@ describe('session-settings.vue', () => {
       description: 'Updated workshop description',
       date: '2026-06-01T09:15:00',
       teamlead_ids: [7],
+      tags: ['vue'],
     })
     expect(wrapper.text()).toContain('Session updated successfully!')
   })

@@ -72,6 +72,7 @@ describe('login.vue', () => {
     expect(wrapper.text()).toContain("Don't have an account?")
     expect(wrapper.text()).toContain('LOG IN')
     expect(wrapper.text()).toContain('SIGN UP')
+    expect(wrapper.text()).toContain('Login with Google')
 
     await setField(wrapper, 'you@example.com', 'admin@example.com')
     await setField(wrapper, 'Min. 8 characters', 'secret123')
@@ -91,6 +92,15 @@ describe('login.vue', () => {
 
     expect(mocks.auth.login).toHaveBeenCalledWith('student@example.com', 'secret123')
     expect(mocks.router.push).toHaveBeenCalledWith('/user-dashboard')
+  })
+
+  it('renders the google login button without making it a form submit button', () => {
+    const wrapper = mountLogin()
+    const googleButton = wrapper.find('button.google-login-btn')
+
+    expect(googleButton.exists()).toBe(true)
+    expect(googleButton.attributes('type')).toBe('button')
+    expect(googleButton.text()).toContain('Login with Google')
   })
 
   it('does not redirect when login fails and shows store errors', async () => {

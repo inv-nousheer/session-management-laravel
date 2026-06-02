@@ -14,6 +14,9 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 Route::post('/logout', [AuthController::class, 'logout']);
+Route::middleware('auth:api')->get('/me', function () {
+    return auth()->user();
+});
 
 Route::post('/session/{id}/add-members', [SessionController::class, 'addMembers']);
 Route::get('/session/{id}/members', [SessionController::class, 'getMembers']);
@@ -43,4 +46,6 @@ Route::get('/sessions/{id}/reopen-requests', [AssessmentController::class, 'reop
 Route::patch('/reopen-requests/{id}', [AssessmentController::class, 'updateReopenRequestStatus']);
 Route::get('/dashboard-data', [SessionController::class, 'dashboardData']);
 Route::post('/session-member/delete/{id}', [SessionController::class, 'destroySessionMembers']);
+Route::get('/auth/google', [AuthController::class, 'redirect']);
+Route::get('/auth/google/callback', [AuthController::class, 'callback']);
 

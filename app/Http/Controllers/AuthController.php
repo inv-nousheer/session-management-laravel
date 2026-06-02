@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -135,6 +136,41 @@ class AuthController extends Controller
     {
         JWTAuth::invalidate(JWTAuth::getToken());
         return response()->json(['message' => 'Successfully logged out']);
+    }
+    public function redirect()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function callback()
+    {
+        try {
+
+            $googleUser = Socialite::driver('google')->stateless()->user();
+
+            $user = User::where('email', $googleUser->email)->first();
+
+            if (!$user) {
+
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'password' => bcrypt(Str::random(16)),
+                    'role' => 'member'
+                ]);
+            }
+
+            $token = JWTAuth::fromUser($user);
+
+            return redirect("http://127.0.0.1:8000/auth-success?token=" . $token);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'message' => 'Google login failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
 

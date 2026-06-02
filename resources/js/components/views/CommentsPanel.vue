@@ -304,10 +304,10 @@ watch(() => props.assessments, (newAssessments) => {
                       <p class="text-sm font-medium text-slate-950 dark:text-white truncate">{{ member.user.name }}</p>
                       <div class="flex items-center gap-1.5 mt-0.5">
                         <span :class="['text-xs px-1.5 py-0.5 rounded font-medium', getStatusColor(member.project_uploads.status)]">
-                          {{ member.project_uploads.status === 1 ? 'Submitted' : 'Pending' }}
+                          {{ member.project_uploads.some(upload => upload.status === 1) ? 'Submitted' : 'Pending' }}
                         </span>
-                        <span v-if="member.project_uploads?.score !== null && member.project_uploads?.score !== undefined" class="text-xs font-bold text-violet-600 dark:text-violet-400 ml-auto">
-                          {{ member.project_uploads.score }}/10
+                        <span class="text-xs font-bold text-violet-600 dark:text-violet-400 ml-auto">
+                          {{ member.project_uploads.some(upload => upload.score !== null && upload.score !== undefined) ? member.project_uploads.find(upload => upload.score !== null && upload.score !== undefined).score : 'N/A' }}/10
                         </span>
                       </div>
                     </div>
@@ -561,7 +561,7 @@ watch(() => props.assessments, (newAssessments) => {
 
                 <!-- Reply Input — always visible for instructor -->
                 <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/40 shrink-0">
-                  <div class="flex gap-2 items-end">
+                  <div class="flex gap-2 items-center">
                     <textarea
                       v-model="replies[selectedAssessment?.id]"
                        @keydown.enter.prevent="
@@ -577,7 +577,7 @@ watch(() => props.assessments, (newAssessments) => {
                     <button
                       @click="handleReply(instructorComment?.id || null)"
                       :disabled="!replies[selectedAssessment?.id]?.trim() || submitting || !activeUploadForReply"
-                      class="px-3 py-2 bg-violet-600 text-white text-xs font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
+                      class="px-3 py-2 bg-violet-600 text-white text-xs font-semibold rounded-xl hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 "
                     >
                       {{ submitting ? '…' : 'Send' }}
                     </button>
