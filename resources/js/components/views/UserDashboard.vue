@@ -2,6 +2,8 @@
 import { ref, reactive } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Pie } from 'vue-chartjs'
+import StatsCard from '../StatsCard.vue'
+import DashboardTable from '../DashboardTable.vue'
 import {
   Chart as ChartJS,
   Title, Tooltip, Legend,
@@ -122,6 +124,20 @@ const chartOptionspie = {
     legend: { position: 'top' }
   }
 }
+
+const sessionColumns = [
+  { label: 'Name', key: 'title', type: 'primary' },
+  { label: 'Description', key: 'description' },
+  { label: 'Status', key: 'status', type: 'badge', value: 'Approved' },
+  { label: 'Date', key: 'date' }
+]
+
+const assessmentColumns = [
+  { label: 'Name', key: 'name', type: 'primary' },
+  { label: 'Description', key: 'description' },
+  { label: 'Start Date', key: 'start_date_time' },
+  { label: 'End Date', key: 'end_date_time' }
+]
 </script>
 
 <template>
@@ -139,93 +155,61 @@ const chartOptionspie = {
 
       <!-- Stats Grid -->
       <div class="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
-        <!-- Total Sessions Card -->
-        <div class="relative overflow-hidden bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-300 dark:border-slate-700">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div class="p-6 relative">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
-                  Total Sessions
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
-                  {{ dashboardDetails.total_sessions }}
-                </p>
-              </div>
-              <div class="p-4 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Sessions"
+          :value="dashboardDetails.total_sessions"
+          card-class="bg-slate-50 border-slate-300"
+          decoration-class="from-purple-500/10 to-violet-500/10"
+          icon-class="from-purple-500 to-violet-600"
+        >
+          <template #icon>
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+            </svg>
+          </template>
+        </StatsCard>
 
-        <!-- Total Assessments Card -->
-        <div class="relative overflow-hidden bg-rose-50/70 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-rose-200 dark:border-slate-700">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div class="p-6 relative">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
-                  Total Assessments
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
-                  {{ dashboardDetails.total_assessments }}
-                </p>
-              </div>
-              <div class="p-4 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Assessments"
+          :value="dashboardDetails.total_assessments"
+          card-class="bg-rose-50/70 border-rose-200"
+          decoration-class="from-pink-500/10 to-rose-500/10"
+          icon-class="from-pink-500 to-rose-600"
+        >
+          <template #icon>
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+            </svg>
+          </template>
+        </StatsCard>
 
-        <!-- Pending Assessments Card -->
-        <div class="relative overflow-hidden bg-sky-50/70 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-sky-200 dark:border-slate-700">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div class="p-6 relative">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
-                  Pending
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
-                  {{ dashboardDetails.pending_assessments }}
-                </p>
-              </div>
-              <div class="p-4 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Pending"
+          :value="dashboardDetails.pending_assessments"
+          card-class="bg-sky-50/70 border-sky-200"
+          decoration-class="from-blue-500/10 to-cyan-500/10"
+          icon-class="from-blue-500 to-cyan-600"
+        >
+          <template #icon>
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+            </svg>
+          </template>
+        </StatsCard>
 
-        <!-- Completed Assessments Card -->
-        <div class="relative overflow-hidden bg-emerald-50/70 dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-emerald-200 dark:border-slate-700">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-full -mr-16 -mt-16"></div>
-          <div class="p-6 relative">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-slate-600 dark:text-gray-400">
-                  Completed
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
-                  {{ dashboardDetails.completed_assessments }}
-                </p>
-              </div>
-              <div class="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Completed"
+          :value="dashboardDetails.completed_assessments"
+          card-class="bg-emerald-50/70 border-emerald-200"
+          decoration-class="from-green-500/10 to-emerald-500/10"
+          icon-class="from-green-500 to-emerald-600"
+        >
+          <template #icon>
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+          </template>
+        </StatsCard>
       </div>
 
       <!-- Charts Grid -->
@@ -268,93 +252,33 @@ const chartOptionspie = {
 
       <!-- Tables Grid -->
       <div class="grid gap-6 lg:grid-cols-2">
-        <!-- Sessions Table -->
-        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-300 dark:border-slate-700">
-          <div class="p-6 border-b border-slate-200 dark:border-slate-700">
-            <div class="flex items-center gap-3">
-              <div class="p-2 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg">
-                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Sessions</h3>
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-slate-100 dark:bg-slate-900/50">
-                <tr class="text-xs font-semibold tracking-wide text-left text-slate-600 dark:text-gray-400 uppercase">
-                  <th class="px-6 py-4">Name</th>
-                  <th class="px-6 py-4">Description</th>
-                  <th class="px-6 py-4">Status</th>
-                  <th class="px-6 py-4">Date</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                <tr v-for="session in dashboardDetails.recentSessions" :key="session.id" class="text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
-                  <td class="px-6 py-4">
-                    <p class="font-semibold text-slate-950 dark:text-white">{{ session.title }}</p>
-                  </td>
-                  <td class="px-6 py-4 text-sm">
-                    {{ session.description }}
-                  </td>
-                  <td class="px-6 py-4">
-                    <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                      Approved
-                    </span>
-                  </td>
-                  <td class="px-6 py-4 text-sm">
-                    {{ session.date }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DashboardTable
+          title="Recent Sessions"
+          :rows="dashboardDetails.recentSessions"
+          :columns="sessionColumns"
+          icon-class="from-purple-500 to-violet-600"
+        >
+          <template #icon>
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+            </svg>
+          </template>
+        </DashboardTable>
 
-        <!-- Assessments Table -->
-        <div class="bg-slate-50 dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-300 dark:border-slate-700">
-          <div class="p-6 border-b border-slate-200 dark:border-slate-700">
-            <div class="flex items-center gap-3">
-              <div class="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
-                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-              <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Assessments</h3>
-            </div>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-slate-100 dark:bg-slate-900/50">
-                <tr class="text-xs font-semibold tracking-wide text-left text-slate-600 dark:text-gray-400 uppercase">
-                  <th class="px-6 py-4">Name</th>
-                  <th class="px-6 py-4">Description</th>
-                  <th class="px-6 py-4">Start Date</th>
-                  <th class="px-6 py-4">End Date</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                <tr v-for="assessment in dashboardDetails.recentAssessments" :key="assessment.id" class="text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
-                  <td class="px-6 py-4">
-                    <p class="font-semibold text-slate-950 dark:text-white">{{ assessment.name }}</p>
-                  </td>
-                  <td class="px-6 py-4 text-sm">
-                    {{ assessment.description }}
-                  </td>
-                  <td class="px-6 py-4 text-sm">
-                    {{ assessment.start_date_time }}
-                  </td>
-                  <td class="px-6 py-4 text-sm">
-                    {{ assessment.end_date_time }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DashboardTable
+          title="Recent Assessments"
+          :rows="dashboardDetails.recentAssessments"
+          :columns="assessmentColumns"
+          icon-class="from-pink-500 to-rose-600"
+        >
+          <template #icon>
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+          </template>
+        </DashboardTable>
       </div>
     </div>
   </main>
