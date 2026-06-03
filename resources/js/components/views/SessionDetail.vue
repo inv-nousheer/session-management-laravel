@@ -9,6 +9,10 @@ import CommentsPanel from '@/components/views/CommentsPanel.vue'
 import CommentsPanelForMembers from '@/components/views/CommentsPanelForMembers.vue'
 import SessionSettings from '@/components/views/SessionSettings.vue'
 import ReopenrequestsPanel from '@/components/views/ReopenrequestsPanel.vue'
+import PageHeading from '@/components/PageHeading.vue'
+import PageSubheading from '@/components/PageSubheading.vue'
+import SessionPanelTabButton from '@/components/SessionPanelTabButton.vue'
+import BackButton from '@/components/BackButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -163,64 +167,30 @@ const submitForm = async () => {
     <div class="p-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div class="flex items-start gap-3 min-w-0">
-          <button
-            type="button"
-            @click="goBackToSessions"
-            class="inline-flex shrink-0 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-            aria-label="Back to sessions"
-          >
-            <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-
-          </button>
+          <BackButton @click="goBackToSessions" />
           <div class="min-w-0">
-            <h1 class="text-2xl font-semibold text-gray-800 dark:text-gray-100">{{ sessionDetails.title }}</h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ sessionDetails.description }}</p>
+            <PageHeading>{{ sessionDetails.title }}</PageHeading>
+            <PageSubheading>{{ sessionDetails.description }}</PageSubheading>
           </div>
         </div>
       </div>
 
       <!-- Horizontal Navigation Tabs -->
       <div class="mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Navigation</h2>
-        </div>
+       
 
         <nav class="flex gap-2 overflow-x-auto pb-4 border-b border-gray-200 dark:border-gray-700">
-          <button
-           v-for="panel in panels.filter(panel =>
+          <SessionPanelTabButton
+            v-for="panel in panels.filter(panel =>
               sessionDetails.created_by === user_id
                   ? ['members', 'assessments', 'comments','reopen_requests', 'settings'].includes(panel.id)
                   : ['uploads', 'comments'].includes(panel.id)
               )"
             :key="panel.id"
-            @click="activePanel = panel.id"
-            :class="[
-              'group relative flex items-center gap-2.5 px-4 py-3 text-sm font-medium transition-all duration-200 whitespace-nowrap outline-none  focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800',
-              activePanel === panel.id
-                ? 'text-purple-600 dark:text-purple-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-            ]"
-          >
-            <!-- Icon -->
-            <svg
-              :class="[
-                'w-5 h-5 flex-shrink-0 transition-colors duration-200',
-                activePanel === panel.id ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-500 group-hover:text-purple-600 dark:group-hover:text-purple-400'
-              ]"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path fill-rule="evenodd" :d="panel.icon" clip-rule="evenodd"/>
-            </svg>
-
-            <!-- Label -->
-            <span>{{ panel.label }}</span>
-
-            <!-- Active underline indicator -->
-            <div v-if="activePanel === panel.id" class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-purple-400"></div>
-          </button>
+            :panel="panel"
+            :active="activePanel === panel.id"
+            @select="activePanel = $event"
+          />
         </nav>
       </div>
 

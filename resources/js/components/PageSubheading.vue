@@ -2,11 +2,11 @@
 defineProps({
   showing: {
     type: Number,
-    required: true,
+    default: null,
   },
   total: {
     type: Number,
-    required: true,
+    default: null,
   },
   hasFilters: {
     type: Boolean,
@@ -17,7 +17,10 @@ defineProps({
 
 <template>
   <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-    Showing {{ showing }} of {{ total }}
-    <span v-if="hasFilters">(filters active)</span>
+    <slot v-if="$slots.default" />
+    <template v-else>
+      Showing {{ showing }} of {{ total }}
+      <span v-if="hasFilters">(filters active)</span>
+    </template>
   </p>
 </template>
