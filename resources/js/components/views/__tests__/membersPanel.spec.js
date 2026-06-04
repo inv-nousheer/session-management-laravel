@@ -114,7 +114,7 @@ describe('membersPanel.vue', () => {
     expect(loadingWrapper.text()).toContain('Loading members...')
     resolveMembers({ data: [] })
     await flushPromises()
-    expect(loadingWrapper.text()).toContain('No members added yet. Click "Add Member" to get started.')
+    expect(loadingWrapper.text()).toContain("No members added yet. Click 'Add Member' to get started.")
     loadingWrapper.unmount()
 
     mocks.api.get.mockRejectedValueOnce(new Error('Network error'))

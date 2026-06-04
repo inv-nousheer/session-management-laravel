@@ -89,9 +89,10 @@ const hasRequestedExtension = (assessment) => {
 
   if (!sessionMember) return false
 
-  return assessment.reopen_requests.some(
-    (request) => request.events_users_id === sessionMember.id && request.status === 0
+  const request =    assessment.reopen_requests.find(
+    (request) => request.events_users_id === sessionMember.id
   )
+  return request ? request.status : null
 }
 </script>
 
@@ -127,7 +128,7 @@ const hasRequestedExtension = (assessment) => {
             <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Due Date</p>
             <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatDate(assessment.end_date_time) }}</p>
           </div>
-          <div v-if="hasUserSubmitted(assessment.id)">
+          <div >
             <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Score</p>
             <p class="text-sm font-medium text-gray-900 dark:text-white"> {{ hasUserSubmitted(assessment.id)?.score ?? 'N/A' }}</p>
           </div>
@@ -175,7 +176,7 @@ const hasRequestedExtension = (assessment) => {
 
               <!-- Already requested -->
               <button
-                v-if="isOverdue(assessment.end_date_time) && hasRequestedExtension(assessment)"
+                v-if="isOverdue(assessment.end_date_time) && hasRequestedExtension(assessment) == 0"
                 class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-all duration-200 text-sm border border-orange-200 dark:border-orange-800"
               >
                 Already Requested
@@ -183,7 +184,7 @@ const hasRequestedExtension = (assessment) => {
 
               <!-- Request extension -->
               <button
-                v-else-if="isOverdue(assessment.end_date_time) && !hasRequestedExtension(assessment)"
+                v-else-if="isOverdue(assessment.end_date_time) && hasRequestedExtension(assessment) === null "
                 @click="emit('request-extension', assessment.id, assessment.events_id)"
                 class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium rounded-lg hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-all duration-200 text-sm border border-orange-200 dark:border-orange-800"
               >

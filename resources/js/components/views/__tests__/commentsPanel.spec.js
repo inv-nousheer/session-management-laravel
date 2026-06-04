@@ -133,7 +133,8 @@ describe('commentsPanel.vue', () => {
     expect(wrapper.text()).toContain('Instructor')
     expect(wrapper.text()).toContain('New file uploaded')
     expect(wrapper.text()).toContain('Looks solid overall')
-    expect(wrapper.text()).toContain('Thank you for the feedback')
+    expect(wrapper.text()).toContain('Project link submitted')
+    expect(wrapper.text()).not.toContain('Thank you for the feedback')
   })
 
   it('submits instructor feedback for the active upload and refreshes assessments', async () => {

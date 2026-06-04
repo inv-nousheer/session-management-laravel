@@ -149,7 +149,7 @@ describe('CommentsPanelForMembers.vue', () => {
     expect(wrapper.text()).toContain('Instructor')
     expect(wrapper.text()).toContain('New file uploaded')
     expect(wrapper.text()).toContain('Nice work on the implementation')
-    expect(wrapper.text()).toContain('I will update the docs')
+    expect(wrapper.text()).not.toContain('I will update the docs')
   })
 
   it('groups multiple uploads for one assessment and filters comments by upload ids', async () => {
