@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import Page from '../Page.vue'
@@ -10,11 +10,18 @@ const mocks = vi.hoisted(() => ({
   route: {
     path: '/dashboard',
   },
+  api: {
+    patch: vi.fn(),
+  },
 }))
 
 vi.mock('vue-router', () => ({
   useRouter: () => mocks.router,
   useRoute: () => mocks.route,
+}))
+
+vi.mock('../../../services/axios.js', () => ({
+  default: mocks.api,
 }))
 
 const mountPage = (user = { id: 1, name: 'Admin User', role: 'admin' }) => {
@@ -41,6 +48,7 @@ const getVisibleButtonsByText = (wrapper, text) => wrapper
 describe('page.vue', () => {
   beforeEach(() => {
     mocks.router.push.mockReset()
+    mocks.api.patch.mockReset()
     mocks.route.path = '/dashboard'
     localStorage.clear()
     document.documentElement.classList.remove('dark')
@@ -162,5 +170,47 @@ describe('page.vue', () => {
 
     expect(wrapper.text()).not.toContain('Edit Profile')
     expect(wrapper.text()).not.toContain('Logout')
+  })
+
+  it('opens edit profile modal and stores updated profile after save', async () => {
+    mocks.api.patch.mockResolvedValue({
+      data: {
+        user: {
+          id: 1,
+          name: 'Ada Updated',
+          email: 'ada.updated@example.com',
+          role: 'admin',
+        },
+      },
+    })
+    const wrapper = mountPage({
+      id: 1,
+      name: 'Ada Admin',
+      email: 'ada@example.com',
+      role: 'admin',
+    })
+
+    await wrapper.find('button[aria-label="Account menu"]').trigger('click')
+    await nextTick()
+    await getVisibleButtonByText(wrapper, 'Edit Profile').trigger('click')
+    await nextTick()
+
+    const modal = document.body.querySelector('form')
+    const [nameInput, emailInput] = modal.querySelectorAll('input')
+    nameInput.value = 'Ada Updated'
+    nameInput.dispatchEvent(new Event('input'))
+    emailInput.value = 'ada.updated@example.com'
+    emailInput.dispatchEvent(new Event('input'))
+    await nextTick()
+
+    modal.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await flushPromises()
+
+    expect(mocks.api.patch).toHaveBeenCalledWith('/api/profile', {
+      name: 'Ada Updated',
+      email: 'ada.updated@example.com',
+    })
+    expect(JSON.parse(localStorage.getItem('user')).name).toBe('Ada Updated')
+    expect(wrapper.text()).toContain('Ada Updated')
   })
 })

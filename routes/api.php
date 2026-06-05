@@ -14,9 +14,11 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 Route::post('/logout', [AuthController::class, 'logout']);
-Route::middleware('auth:api')->get('/me', function () {
-    return auth()->user();
+Route::middleware('auth:api')->get('/me', function (Request $request) {
+    return $request->user();
 });
+Route::middleware('auth:api')->get('/profile', [AuthController::class, 'profile']);
+Route::middleware('auth:api')->patch('/profile', [AuthController::class, 'updateProfile']);
 
 Route::post('/session/{id}/add-members', [SessionController::class, 'addMembers']);
 Route::get('/session/{id}/members', [SessionController::class, 'getMembers']);

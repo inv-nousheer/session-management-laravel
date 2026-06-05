@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, watch,ref } from 'vue'
 import CommentMessageBubble from '@/components/CommentMessageBubble.vue'
 import CommentReplyInput from '@/components/CommentReplyInput.vue'
 import CommentScoreBar from '@/components/CommentScoreBar.vue'
@@ -61,6 +61,20 @@ const emit = defineEmits([
   'update-reply',
   'submit-reply',
 ])
+
+const commentsContainer = ref(null)
+
+watch(
+  () => props.selectedMemberComments.length,
+  async () => {
+    await nextTick()
+
+    commentsContainer.value?.scrollTo({
+      top: commentsContainer.value.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+)
 
 const getInitials = (name) => name?.split(' ').map((n) => n.charAt(0)).join('').toUpperCase() || '?'
 
@@ -148,7 +162,7 @@ const canSubmitReply = computed(() => {
           />
 
           <!-- Thread -->
-          <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+          <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0"  ref="commentsContainer">
             <template v-if="selectedMemberComments.length > 0">
               <div v-for="comment in selectedMemberComments" :key="comment.id">
                 <div :class="['flex w-full', isStudentComment(comment) ? 'justify-start' : 'justify-end']">

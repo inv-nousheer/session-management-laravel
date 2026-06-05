@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import api from '../../services/axios.js'
+import EditProfileModal from '../EditProfileModal.vue'
 
 // ─── Parse localStorage ONCE ──────────────────────────────────────────────
-const currentUser = JSON.parse(localStorage.getItem('user') || 'null')
-const role        = currentUser?.role  ?? null
-const user_name   = currentUser?.name  ?? ''
+const currentUser = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+const role        = computed(() => currentUser.value?.role ?? null)
+const user_name   = computed(() => currentUser.value?.name ?? '')
 
 const router = useRouter()
 const route  = useRoute()
@@ -15,11 +17,20 @@ const isSideMenuOpen  = ref(false)
 const dark            = ref(false)
 const profileMenuOpen = ref(false)
 const profileMenuRef  = ref(null)
+const editProfileOpen = ref(false)
+const profileSubmitting = ref(false)
+const profileFormError = ref('')
+const profileForm = ref({
+  name: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+})
 
 // ─── Active nav item — single computed, no duplicate useRoute() ───────────
 const activeElement = computed(() => {
   const p = route.path
-  if (role === 'admin') {
+  if (role.value === 'admin') {
     if (p.startsWith('/dashboard/sessions')) return 'session'
     if (p.startsWith('/dashboard/users'))    return 'users'
     if (p.startsWith('/dashboard'))          return 'dashboard'
@@ -31,7 +42,7 @@ const activeElement = computed(() => {
   return ''
 })
 
-const displayName = computed(() => user_name || 'User')
+const displayName = computed(() => user_name.value || 'User')
 const userInitials = computed(() =>
   displayName.value
     .split(' ')
@@ -41,10 +52,10 @@ const userInitials = computed(() =>
     .join('') || 'U'
 )
 const roleLabel = computed(() => {
-  if (!role) return 'Team Member'
-  return role === 'tl'
+  if (!role.value) return 'Team Member'
+  return role.value === 'tl'
     ? 'Team Lead'
-    : role.charAt(0).toUpperCase() + role.slice(1)
+    : role.value.charAt(0).toUpperCase() + role.value.slice(1)
 })
 
 // ─── Theme ────────────────────────────────────────────────────────────────
@@ -62,6 +73,75 @@ const toggleTheme = () => {
 // ─── Profile menu ─────────────────────────────────────────────────────────
 const toggleProfileMenu  = () => { profileMenuOpen.value = !profileMenuOpen.value }
 const closeProfileMenu   = () => { profileMenuOpen.value = false }
+
+const openEditProfile = () => {
+  profileForm.value = {
+    name: currentUser.value?.name ?? '',
+    email: currentUser.value?.email ?? '',
+    password: '',
+    password_confirmation: '',
+  }
+  profileFormError.value = ''
+  editProfileOpen.value = true
+  closeProfileMenu()
+}
+
+const closeEditProfile = () => {
+  if (profileSubmitting.value) return
+  editProfileOpen.value = false
+  profileFormError.value = ''
+}
+
+const updateProfileField = (field, value) => {
+  profileForm.value[field] = value
+}
+
+const getProfileError = (err) => {
+  const errors = err.response?.data?.errors
+  if (errors) return Object.values(errors).flat().join(' ')
+  return err.response?.data?.message || err.response?.data?.error || 'Failed to update profile'
+}
+
+const submitProfile = async () => {
+  const name = profileForm.value.name.trim()
+  const email = profileForm.value.email.trim()
+
+  if (!name) {
+    profileFormError.value = 'Name is required'
+    return
+  }
+  if (!email) {
+    profileFormError.value = 'Email is required'
+    return
+  }
+  if (profileForm.value.password && profileForm.value.password.length < 6) {
+    profileFormError.value = 'Password must be at least 6 characters'
+    return
+  }
+  if (profileForm.value.password !== profileForm.value.password_confirmation) {
+    profileFormError.value = 'Password confirmation does not match'
+    return
+  }
+
+  profileSubmitting.value = true
+  profileFormError.value = ''
+  try {
+    const payload = { name, email }
+    if (profileForm.value.password) {
+      payload.password = profileForm.value.password
+      payload.password_confirmation = profileForm.value.password_confirmation
+    }
+
+    const response = await api.patch('/api/profile', payload)
+    currentUser.value = response.data.user
+    localStorage.setItem('user', JSON.stringify(response.data.user))
+    editProfileOpen.value = false
+  } catch (err) {
+    profileFormError.value = getProfileError(err)
+  } finally {
+    profileSubmitting.value = false
+  }
+}
 
 const handleOutsideClick = (e) => {
   if (!profileMenuOpen.value) return
@@ -86,13 +166,13 @@ onBeforeUnmount(() => {
 const toggleSideMenu = () => { isSideMenuOpen.value = !isSideMenuOpen.value }
 
 const goToDashboard = () =>
-  router.push(role === 'admin' ? '/dashboard' : '/user-dashboard')
+  router.push(role.value === 'admin' ? '/dashboard' : '/user-dashboard')
 
 const goToSessions = () =>
-  router.push(role === 'admin' ? '/dashboard/sessions' : '/user-dashboard/sessions')
+  router.push(role.value === 'admin' ? '/dashboard/sessions' : '/user-dashboard/sessions')
 
 const goToUsers = () =>
-  router.push(role === 'tl' ? '/user-dashboard/users' : '/dashboard/users')
+  router.push(role.value === 'tl' ? '/user-dashboard/users' : '/dashboard/users')
 
 // ─── Logout ───────────────────────────────────────────────────────────────
 const logout = () => {
@@ -114,7 +194,7 @@ const navItems = computed(() => [
     key:    'users',
     label:  'Users',
     action: goToUsers,
-    always: role === 'admin' || role === 'tl',
+    always: role.value === 'admin' || role.value === 'tl',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
   },
   {
@@ -136,7 +216,7 @@ const visibleNavItems = computed(() => navItems.value.filter((n) => n.always))
   >
     <!-- ── Desktop sidebar ──────────────────────────────────────────────── -->
     <aside
-      class="z-20 hidden w-64 shrink-0 overflow-y-auto border-r border-violet-200/70 bg-linear-to-b from-violet-90 via-indigo-50/90 to-slate-50 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 md:flex md:min-h-screen md:flex-col"
+      class="z-20 hidden w-64 shrink-0 overflow-y-auto border-r border-violet-200/70 bg-blue-100/70 dark:bg-slate-900 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 md:flex md:min-h-screen md:flex-col"
     >
       <div class="flex min-h-full flex-1 flex-col py-4 text-slate-600 dark:text-slate-400">
         <a
@@ -380,7 +460,7 @@ const visibleNavItems = computed(() => navItems.value.filter((n) => n.always))
                   <div class="p-2">
                     <button
                       type="button"
-                      @click="closeProfileMenu"
+                      @click="openEditProfile"
                       class="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       Edit Profile
@@ -404,6 +484,16 @@ const visibleNavItems = computed(() => navItems.value.filter((n) => n.always))
       <!-- Page content -->
       <router-view />
     </div>
+
+    <EditProfileModal
+      v-if="editProfileOpen"
+      :form-data="profileForm"
+      :form-error="profileFormError"
+      :submitting="profileSubmitting"
+      @close="closeEditProfile"
+      @submit="submitProfile"
+      @update-field="updateProfileField"
+    />
   </div>
 </template>
 

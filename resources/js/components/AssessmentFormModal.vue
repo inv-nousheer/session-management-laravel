@@ -111,7 +111,7 @@ const initDatePicker = () => {
         disableMobile: true,
         minDate: minPickerDate.value,
         defaultDate: defaultDates ?? undefined,
-        appendTo: datePickerWrap.value || undefined,
+       // appendTo: datePickerWrap.value || undefined,
         onClickOutside: (selectedDates, dateStr, instance) => {
           instance.close()
         },

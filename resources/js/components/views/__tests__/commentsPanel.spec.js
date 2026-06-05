@@ -134,7 +134,7 @@ describe('commentsPanel.vue', () => {
     expect(wrapper.text()).toContain('New file uploaded')
     expect(wrapper.text()).toContain('Looks solid overall')
     expect(wrapper.text()).toContain('Project link submitted')
-    expect(wrapper.text()).not.toContain('Thank you for the feedback')
+    expect(wrapper.text()).toContain('Thank you for the feedback')
   })
 
   it('submits instructor feedback for the active upload and refreshes assessments', async () => {
@@ -159,6 +159,53 @@ describe('commentsPanel.vue', () => {
     })
     expect(fetchAssessments).toHaveBeenCalledTimes(1)
     expect(wrapper.find('textarea').element.value).toBe('')
+  })
+
+  it('focuses the newly submitted feedback bubble after refreshing assessments', async () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(() => {})
+    mocks.api.post.mockResolvedValueOnce({ data: { id: 104 } })
+
+    const assessment = buildAssessment()
+    const refreshedAssessment = buildAssessment({
+      comments: [
+        assessment.comments[0],
+        {
+          ...assessment.comments[1],
+          replies: [
+            ...assessment.comments[1].replies,
+            {
+              id: 104,
+              events_users_events_assessments_id: 900,
+              comments: 'Please polish the README',
+              users_id: 55,
+              user: { name: 'Dr Mentor' },
+              created_at: '2026-05-01T13:00:00Z',
+            },
+          ],
+        },
+        assessment.comments[2],
+      ],
+    })
+    let wrapper
+    const fetchAssessments = vi.fn(async () => {
+      await wrapper.setProps({ assessments: [refreshedAssessment] })
+    })
+    wrapper = await mountPanel({
+      assessments: [assessment],
+      fetchAssessments,
+    })
+
+    await selectSubmittedMember(wrapper)
+    await wrapper.find('textarea').setValue('Please polish the README')
+    await wrapper.findAll('button').find((button) => button.text().includes('Send')).trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.find('[data-comment-id="104"]').exists()).toBe(true)
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true })
   })
 
   it('saves a valid score for the latest upload', async () => {
